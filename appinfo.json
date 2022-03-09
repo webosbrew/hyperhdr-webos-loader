@@ -1,0 +1,15 @@
+{
+    "id": "org.webosbrew.hyperion.ng.loader",
+    "version": "0.1.0",
+    "vendor": "webosbrew.org",
+    "title": "Hyperion.NG",
+    "icon": "assets/logo_small.png",
+    "largeIcon": "assets/logo_big.png",
+    "splashBackground": "assets/splash_1080p.png",
+    "bgImage": "assets/splash_1080p.png",
+    "main": "index.html",
+    "iconColor": "black",
+    "type": "web",
+    "supportGIP": true,
+    "appDescription": "Hyperion.NG for WebOS"
+}

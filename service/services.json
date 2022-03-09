@@ -1,0 +1,7 @@
+{
+    "id" : "org.webosbrew.hyperion.ng.loader.service",
+    "description":"Hyperion.NG service",
+    "services": [{
+      "name": "org.webosbrew.hyperion.ng.loader.service"
+    }]
+  }

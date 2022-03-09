@@ -1,0 +1,4 @@
+{
+    "name": "org.webosbrew.hyperion.ng.loader.service",
+    "main": "service.js"
+}
