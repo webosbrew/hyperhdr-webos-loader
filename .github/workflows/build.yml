@@ -194,6 +194,7 @@ jobs:
           chmod +x ./dist/assets/autostart.sh
 
       - run: npm run package
+      - run: npm run gen-manifest
 
       - name: Upload artifact
         uses: actions/upload-artifact@v3
@@ -211,3 +212,4 @@ jobs:
           title: "Development Build"
           files: |
             ${{github.workspace}}/*.ipk
+            ${{github.workspace}}/org.webosbrew.hyperion.ng.loader.manifest.json

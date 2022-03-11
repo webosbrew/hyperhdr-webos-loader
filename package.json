@@ -17,6 +17,7 @@
     "build-local:service": "webpack",
     "build-local:package": "ares-package dist/ -e enyo-ilib",
     "build-and-launch": "npm-run-all --serial build-local deploy launch",
+    "gen-manifest": "webosbrew-gen-manifest -a appinfo.json -p org.webosbrew.hyperion.ng.loader_${npm_package_version}_all.ipk -o org.webosbrew.hyperion.ng.loader.manifest.json --icon https://github.com/webosbrew/hyperion.ng-webos-loader/raw/master/assets/logo_big.png --link https://github.com/webosbrew/hyperion.ng-webos-loader --root true",
     "version": "node tools/sync-version.js && git add appinfo.json"
   },
   "assets": [
@@ -39,6 +40,7 @@
     "@typescript-eslint/eslint-plugin": "^4.4.1",
     "@typescript-eslint/parser": "^4.22.1",
     "@webosose/ares-cli": "^2.1.0",
+    "@webosbrew/pub-utils": "^1.0.3",
     "babel-loader": "^8.2.2",
     "enyo-dev": "^1.0.0",
     "eslint": "^7.25.0",
