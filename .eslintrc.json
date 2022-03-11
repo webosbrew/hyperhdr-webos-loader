@@ -29,7 +29,8 @@
         "node_modules/**",
         "dist/**",
         "hyperion.ng/**",
-        "service/**"
+        "service/**",
+        "tools/**"
     ],
     "parserOptions": {
         "project": "./tsconfig.json"
