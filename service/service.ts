@@ -82,6 +82,7 @@ function spawnHyperiond(activity: any, config: Config) {
       env: {
         ...process.env,
         LD_LIBRARY_PATH: __dirname,
+        OPENSSL_armcap: "0",
       },
     });
     childProcess.stdout.on('data', (data: any) => {
