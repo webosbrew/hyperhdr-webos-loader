@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
 
 env:
-  TOOLCHAIN_URL: https://api.cirrus-ci.com/v1/artifact/task/6155872014434304/sdk/output/images/arm-webos-linux-gnueabi_sdk-buildroot.tar.gz
+  TOOLCHAIN_URL: https://github.com/openlgtv/buildroot-nc4/releases/latest/download/arm-webos-linux-gnueabi_sdk-buildroot.tar.gz
   TOOLCHAIN_DIR: /opt/arm-webos-linux-gnueabi_sdk-buildroot
   TOOLCHAIN_FILE: /opt/arm-webos-linux-gnueabi_sdk-buildroot/share/buildroot/toolchainfile.cmake
   BUILD_DIR_NATIVE: build-x86x64
