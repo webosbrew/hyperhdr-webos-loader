@@ -12,8 +12,8 @@ var
 	ToggleItem = require('moonstone/ToggleItem'),
 	Group = require('enyo/Group');
 
-var basePath = "/media/developer/apps/usr/palm/applications/org.webosbrew.hyperion.ng.loader";
-var applyPath = basePath + "/assets/autostart.sh";
+var servicePath = "/media/developer/apps/usr/palm/services/org.webosbrew.hyperion.ng.loader.service";
+var autostartFilepath = servicePath + "/autostart.sh";
 var linkPath = "/var/lib/webosbrew/init.d/90-start_hyperiond";
 module.exports = kind({
   name: 'MainPanel',
@@ -78,14 +78,14 @@ module.exports = kind({
     console.info(sender, evt);
     // this.$.result.set('content', JSON.stringify(evt.data));
     this.$.autostart.set('disabled', false);
-    this.$.autostart.set('checked', evt.stdoutString && evt.stdoutString.trim() == applyPath);
+    this.$.autostart.set('checked', evt.stdoutString && evt.stdoutString.trim() == autostartFilepath);
   },
 
   autostartToggle: function (sender) {
     console.info("toggle:", sender);
 
     if (sender.active) {
-      this.exec('mkdir -p /var/lib/webosbrew/init.d && ln -sf ' + applyPath + ' ' + linkPath);
+      this.exec('mkdir -p /var/lib/webosbrew/init.d && ln -sf ' + autostartFilepath + ' ' + linkPath);
     } else {
       this.exec('rm -rf ' + linkPath);
     }

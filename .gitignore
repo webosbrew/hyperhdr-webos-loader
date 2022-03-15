@@ -2,4 +2,5 @@ build/
 node_modules/
 dist/
 .enyocache
+hyperion/
 **/*.ipk

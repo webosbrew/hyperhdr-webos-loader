@@ -1,7 +1,10 @@
 {
-    "id" : "org.webosbrew.hyperion.ng.loader.service",
-    "description":"Hyperion.NG service",
-    "services": [{
-      "name": "org.webosbrew.hyperion.ng.loader.service"
-    }]
-  }
+  "id" : "org.webosbrew.hyperion.ng.loader.service",
+  "description":"Hyperion.NG loader service",
+  "engine":"native",
+  "executable":"loader_service",
+  "services": [ {
+    "name": "org.webosbrew.hyperion.ng.loader.service",
+    "description": "Hyperion.NG loader service"
+  }]
+}
