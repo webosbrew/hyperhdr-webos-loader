@@ -7,6 +7,7 @@
 
 typedef struct {
     bool running;
+    char *hyperiond_version;
 } service_t;
 
 int service_start(service_t* service);
