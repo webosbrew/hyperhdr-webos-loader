@@ -7,9 +7,13 @@ on:
 env:
   TOOLCHAIN_URL: https://github.com/openlgtv/buildroot-nc4/releases/latest/download/arm-webos-linux-gnueabi_sdk-buildroot.tar.gz
   TOOLCHAIN_DIR: /opt/arm-webos-linux-gnueabi_sdk-buildroot
+  TOOLCHAIN_ENV_FILE: /opt/arm-webos-linux-gnueabi_sdk-buildroot/environment-setup
   TOOLCHAIN_FILE: /opt/arm-webos-linux-gnueabi_sdk-buildroot/share/buildroot/toolchainfile.cmake
   BUILD_DIR_NATIVE: build-x86x64
   BUILD_DIR_CROSS: build-cross
+
+  CCACHE_DIR_NATIVE: .ccache-build-x86x64
+  CCACHE_DIR_CROSS: .ccache-build-cross
   CCACHE_COMPRESS: true
   CCACHE_COMPRESSLEVEL: 6
   CCACHE_MAXSIZE: 600M
@@ -30,17 +34,20 @@ jobs:
           submodules: recursive
 
       - name: Restore/Cache build directories
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: |
-            ${{ github.workspace }}/ccache_basedir
-          key: ${{ runner.os }}-hyperion.ng-ccache
+            ${{ github.workspace }}/${{ env.CCACHE_DIR_NATIVE }}
+            ${{ github.workspace }}/${{ env.CCACHE_DIR_CROSS }}
+
+          key: ccache-${{ runner.os }}-${{github.run_id}}
+          restore-keys: |
+            ccache-${{ runner.os }}
 
       - name: Create build directories
         run: |
-          mkdir -p ${{ github.workspace }}/ccache_basedir
-          mkdir -p ./${BUILD_DIR_NATIVE}
-          mkdir -p ./${BUILD_DIR_CROSS}
+          mkdir -p ./${{ env.BUILD_DIR_NATIVE }}
+          mkdir -p ./${{ env.BUILD_DIR_CROSS }}
 
       - name: Download and unpack toolchain
         working-directory: /opt
@@ -63,10 +70,9 @@ jobs:
 
       - name: Build native
         env:
-          CCACHE_BASEDIR: ${{ github.workspace }}/ccache_basedir
-          CCACHE_DIR: ${{ github.workspace }}/ccache_basedir/.ccache-native
+          CCACHE_DIR: ${{ github.workspace }}/${{ env.CCACHE_DIR_NATIVE }}
         run: |
-          pushd ./${BUILD_DIR_NATIVE}
+          pushd ./${{ env.BUILD_DIR_NATIVE }}
           cmake .. \
             -DCMAKE_C_COMPILER_LAUNCHER=ccache \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
@@ -92,14 +98,13 @@ jobs:
 
       - name: Build cross (webos arm)
         env:
-          CCACHE_BASEDIR: ${{ github.workspace }}/ccache_basedir
-          CCACHE_DIR: ${{ github.workspace }}/ccache_basedir/.ccache-cross
+          CCACHE_DIR: ${{ github.workspace }}/${{ env.CCACHE_DIR_CROSS }}
         run: |
-          pushd ./${BUILD_DIR_CROSS}
+          pushd ./${{ env.BUILD_DIR_CROSS }}
           cmake .. \
-            -DCMAKE_TOOLCHAIN_FILE=${TOOLCHAIN_FILE} \
             -DCMAKE_C_COMPILER_LAUNCHER=ccache \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_TOOLCHAIN_FILE=${TOOLCHAIN_FILE} \
             -DCMAKE_BUILD_TYPE=Release \
             -DPLATFORM=rpi \
             -DHYPERION_LIGHT=ON \
@@ -124,7 +129,7 @@ jobs:
       - name: Copy built binaries to release/
         run: |
           mkdir ./release
-          cp -r ./${BUILD_DIR_CROSS}/bin/* ./release/
+          cp -r ./${{ env.BUILD_DIR_CROSS }}/bin/* ./release/
           find ./release
       
       - name: Copy dependencies to release/
@@ -168,6 +173,25 @@ jobs:
         with:
           node-version: 14.x
 
+      - name: Download and unpack toolchain
+        working-directory: /opt
+        run: |
+          wget -q -O toolchain.tar.gz ${TOOLCHAIN_URL}
+          tar xf toolchain.tar.gz
+
+      - name: Relocate toolchain
+        run: |
+          pushd ${TOOLCHAIN_DIR}
+          ./relocate-sdk.sh
+          popd
+
+      - name: Install native dependencies
+        env:
+          apt_deps: cmake build-essential
+        run: |
+          sudo apt update
+          sudo apt install -y ${{ env.apt_deps }}
+
       - name: Reconfigure git to use HTTP authentication
         run: >
           git config --global url."https://github.com/".insteadOf
@@ -175,23 +199,37 @@ jobs:
 
       - run: npm ci
       - run: npm run lint
-      - run: npm run build -- --production
-      - run: npm run build-service -- --env production
+      - run: npm run build -- --env production
+      - name: Build service
+        run: |
+          mkdir -p ./dist/service
+          rm -rf ./dist/service/*
+          mkdir -p ./service/build
+          pushd service/build
+          cmake .. \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_TOOLCHAIN_FILE=${TOOLCHAIN_FILE}
+          make
+          popd
+          cp -r ./service/build/dist/* ./dist/service/
 
-      - name: Copy hyperion.ng into dist/service/
+      - name: Copy hyperion.ng into dist/service/hyperion
         run: |
           ls -R
-          cp -r ./hyperion.ng-build/* ./dist/service/
+          mkdir -p ./dist/service/hyperion
+          cp -r ./hyperion.ng-build/* ./dist/service/hyperion/
           ls -R
 
       - name: Ensure executables +x
         run: |
-          chmod +x ./dist/service/hyperiond
-          chmod +x ./dist/service/hyperion-remote
-          chmod +x ./dist/service/flatc
-          chmod +x ./dist/service/flathash
+          chmod +x ./dist/service/autostart.sh
+          chmod +x ./dist/service/loader_service
+          chmod +x ./dist/service/start_hyperiond
 
-          chmod +x ./dist/assets/autostart.sh
+          chmod +x ./dist/service/hyperion/hyperiond
+          chmod +x ./dist/service/hyperion/hyperion-remote
+          chmod +x ./dist/service/hyperion/flatc
+          chmod +x ./dist/service/hyperion/flathash
 
       - run: npm run package
       - run: npm run gen-manifest
