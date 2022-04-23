@@ -3,4 +3,5 @@ node_modules/
 dist/
 .enyocache
 hyperion/
+hyperion.ng/
 **/*.ipk
