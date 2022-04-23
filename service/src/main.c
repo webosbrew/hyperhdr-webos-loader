@@ -15,11 +15,22 @@ bool is_elevated()
     return (geteuid() == 0);
 }
 
-char *hyperiond_start_cmdline()
+char *hyperiond_cmdline(char *args)
 {
     char *tmp = (char *)calloc(1, FILENAME_MAX);
-    snprintf(tmp, FILENAME_MAX, "/bin/bash -c 'LD_LIBRARY_PATH=%s OPENSSL_armcap=%i %s/hyperiond &'", HYPERION_PATH, 0, HYPERION_PATH);
+    snprintf(tmp, FILENAME_MAX, "/bin/bash -c 'LD_LIBRARY_PATH=%s OPENSSL_armcap=%i %s/hyperiond %s'", HYPERION_PATH, 0, HYPERION_PATH, args);
     return tmp;
+}
+
+char *hyperiond_start_cmdline()
+{
+    // Run hyperiond in background
+    return hyperiond_cmdline("&");
+}
+
+char *hyperiond_version_cmdline()
+{
+    return hyperiond_cmdline("--version");
 }
 
 int hyperiond_start(service_t* service)
@@ -60,18 +71,33 @@ int hyperiond_stop(service_t* service)
 
 int hyperiond_version(service_t* service)
 {
+    int res = 0;
     // NOTE: --version call is fine even without root privileges
     if (service->hyperiond_version == NULL) {
-        int res = 0;
-        // TODO: Call into hyperiond and check version
-        if (res != 0) {
-            // Fetching version failed
+        service->hyperiond_version = (char *)calloc(FILENAME_MAX, 1);
+        if (service->hyperiond_version == NULL) {
+            // Buffer allocation failed
             return 1;
         }
-        service->hyperiond_version = "<To be implemented>";
+
+        char *command = hyperiond_version_cmdline();
+        // Spawn process with read-only pipe
+        FILE *fp = popen(command, "r");
+        if (fp == NULL) {
+            // Opening process failed
+            res = 2;
+        } else {
+            int bytes_read = fread(service->hyperiond_version, 1, FILENAME_MAX, fp);
+            if (bytes_read == 0) {
+                // Reading process' stdout failed
+                res = 3;
+            }
+
+            pclose(fp);
+        }
     }
 
-    return 0;
+    return res;
 }
 
 bool service_method_start(LSHandle* sh, LSMessage* msg, void* data)
@@ -141,11 +167,12 @@ bool service_method_version(LSHandle* sh, LSMessage* msg, void* data)
     jvalue_ref jobj = jobject_create();
     int res = hyperiond_version(service);
     jobject_set(jobj, j_cstr_to_buffer("returnValue"), jboolean_create(res == 0));
+    jobject_set(jobj, j_cstr_to_buffer("returnCode"), jnumber_create_i32(res));
     switch (res) {
         case 0:
             jobject_set(jobj, j_cstr_to_buffer("version"), jstring_create(service->hyperiond_version));
             break;
-        case 1:
+        default:
             jobject_set(jobj, j_cstr_to_buffer("version"), jstring_create("Error while fetching"));
             break;
     }
