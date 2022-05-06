@@ -28,10 +28,13 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-          repository: tuxuser/hyperion.ng
-          ref: tmp/webos/lil_patches
+          repository: hyperion-project/hyperion.ng
+          ref: e055fb9e15301a5cedfc8ce8c82f267a16d4a45f
           path: hyperion.ng
           submodules: recursive
+
+      - name: Patch sources (force link w/ librt)
+        run: sed -i -e 's/hidapi-libusb)$/rt hidapi-libusb)/g w /dev/stdout' libsrc/leddevice/CMakeLists.txt
 
       - name: Restore/Cache build directories
         uses: actions/cache@v3
