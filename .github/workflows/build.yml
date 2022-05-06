@@ -92,9 +92,14 @@ jobs:
             -DENABLE_DEV_SERIAL=OFF \
             -DENABLE_DEV_TINKERFORGE=OFF \
             -DENABLE_DEV_USB_HID=OFF \
-            -DENABLE_AVAHI=OFF \
             -DENABLE_EFFECTENGINE=OFF \
             -DENABLE_REMOTE_CTL=OFF \
+            -DENABLE_QT=OFF \
+            -DENABLE_FORWARDER=OFF \
+            -DENABLE_DEV_SPI=OFF \
+            -DENABLE_MDNS=OFF \
+            -DENABLE_FLATBUF_CONNECT=ON \
+            -DENABLE_PROTOBUF_SERVER=OFF \
             -Wno-dev
           make
           popd
@@ -118,7 +123,7 @@ jobs:
             -DENABLE_DEV_USB_HID=ON \
             -DENABLE_DEV_WS281XPWM=OFF \
             -DENABLE_DEV_TINKERFORGE=ON \
-            -DENABLE_AVAHI=OFF \
+            -DENABLE_MDNS=OFF \
             -DENABLE_DEPLOY_DEPENDENCIES=OFF \
             -DENABLE_BOBLIGHT_SERVER=ON \
             -DENABLE_FLATBUF_SERVER=ON \
