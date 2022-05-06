@@ -2,8 +2,10 @@
 # Usage:
 # TOOLCHAIN_DIR=<path_to_webos_buildroot_toolchain> ./build_hyperion_ng.sh
 
-HYPERION_NG_REPO="${HYPERION_NG_REPO:-https://github.com/tuxuser/hyperion.ng}"
-HYPERION_NG_BRANCH="${HYPERION_NG_BRANCH:-tmp/webos/lil_patches}"
+PATCH_LIBRT="yes"
+
+HYPERION_NG_REPO="${HYPERION_NG_REPO:-https://github.com/hyperion-project/hyperion.ng}"
+HYPERION_NG_BRANCH="${HYPERION_NG_BRANCH:-master}"
 
 # Toolchain params - No changes needed below this line
 TOOLCHAIN_DIR=${TOOLCHAIN_DIR:-$HOME/arm-webos-linux-gnueabi_sdk-buildroot}
@@ -25,6 +27,12 @@ if [ ! -d $HYPERION_NG_DIR ]
 then
   echo ":: Cloning hyperion.ng from repo '$HYPERION_NG_REPO', branch: '$HYPERION_NG_BRANCH'"
   git clone --recursive --branch $HYPERION_NG_BRANCH $HYPERION_NG_REPO $HYPERION_NG_DIR || { echo "[-] Cloning git repo failed"; exit 1; }
+  
+  if [ ! -z $PATCH_LIBRT ]
+  then
+    echo "* Patching to force-link librt"
+    sed -i -e 's/hidapi-libusb)$/rt hidapi-libusb)/g w /dev/stdout' hyperion.ng/libsrc/leddevice/CMakeLists.txt
+  fi
 fi
 
 # Native build to have flatc compiler
@@ -48,9 +56,14 @@ cmake  .. \
   -DENABLE_DEV_SERIAL=OFF \
   -DENABLE_DEV_TINKERFORGE=OFF \
   -DENABLE_DEV_USB_HID=OFF \
-  -DENABLE_AVAHI=OFF \
   -DENABLE_EFFECTENGINE=OFF \
   -DENABLE_REMOTE_CTL=OFF \
+  -DENABLE_QT=OFF \
+  -DENABLE_FORWARDER=OFF \
+  -DENABLE_DEV_SPI=OFF \
+  -DENABLE_MDNS=OFF \
+  -DENABLE_FLATBUF_CONNECT=ON \
+  -DENABLE_PROTOBUF_SERVER=OFF \
   -Wno-dev || { echo "[-] Native build -CONFIG- failed"; exit 1; }
 
 make -j9 || { echo "[-] Native build -MAKE- failed"; exit 1; }
@@ -77,7 +90,7 @@ cmake .. \
   -DENABLE_DEV_USB_HID=ON \
   -DENABLE_DEV_WS281XPWM=OFF \
   -DENABLE_DEV_TINKERFORGE=ON \
-  -DENABLE_AVAHI=OFF \
+  -DENABLE_MDNS=ON \
   -DENABLE_DEPLOY_DEPENDENCIES=OFF \
   -DENABLE_BOBLIGHT_SERVER=ON \
   -DENABLE_FLATBUF_SERVER=ON \
