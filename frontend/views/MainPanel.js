@@ -81,11 +81,9 @@ module.exports = kind({
     {kind: LunaService, name: 'autostartStatusCheck', service: 'luna://org.webosbrew.hbchannel.service', method: 'exec', onResponse: 'onAutostartCheck', onError: 'onAutostartCheck'},
 
     {kind: LunaService, name: 'exec', service: 'luna://org.webosbrew.hbchannel.service', method: 'exec', onResponse: 'onExec', onError: 'onExec'},
-    {kind: LunaService, name: 'elevate', service: 'luna://org.webosbrew.hbchannel.service', method: 'exec', onResponse: 'onElevate', onError: 'onElevate'},
     {kind: LunaService, name: 'systemReboot', service: 'luna://org.webosbrew.hbchannel.service', method: 'reboot'},
   ],
 
-  secondElevationAttempt: false,
   autostartEnabled: false,
   serviceElevated: false,
   daemonRunning: false,
@@ -106,19 +104,16 @@ module.exports = kind({
   create: function () {
     this.inherited(arguments);
     console.info("Application created");
-    // At first, check if the underlying service is started as root.
-    //
-    // The callback of that check will then either:
-    // (if not elevated yet) -> attempt to elevate the service
-    // or
-    // (if elevated/running as root) - enable the autostart-toggle and start/stop button
-    this.set('resultText','Checking if native service is elevated...');
+    // At first, elevate the native service
+    // It does not do harm if service is elevated already
+    this.elevate();
+    this.set('resultText','Checking service status...');
     this.$.serviceStatus.send({});
   },
   // Elevates the native service - this enables hyperion.ng.loader.service to run as root by default
   elevate: function () {
     console.info("Sending elevation command");
-    this.$.elevate.send({command: elevationCommand});
+    this.$.exec.send({command: elevationCommand});
   },
   // Kill the loader service. Needed to force-restart after elevation
   terminate: function() {
@@ -169,16 +164,13 @@ module.exports = kind({
     console.info(sender, evt);
     this.set('serviceElevated', evt.elevated);
     this.set('daemonRunning', evt.running);
+    this.set('resultText', 'Service status received..');
     if (this.serviceElevated) {
-      this.set('resultText', 'Checking autostart script..');
       this.checkAutostart();
       this.fetchVersion();
-    } else if (!this.secondElevationAttempt) {
-      this.secondElevationAttempt = true;
-      this.set('resultText', 'Trying to elevate...');
-      this.elevate();
     } else {
-      this.set('resultText', 'Failed: Elevating org.webosbrew.hyperion.ng.loader.service');
+      this.set('resultText', 'Restarting native service to elevate...');
+      this.terminate();
     }
   },
   onAutostartCheck: function (sender, evt) {
@@ -188,11 +180,6 @@ module.exports = kind({
     this.set('autostartEnabled', (evt.returnValue && evt.stdoutString && evt.stdoutString.trim() == autostartFilepath));
     this.set('resultText', 'Autostart check completed');
   },
-  onElevate: function (sender, evt) {
-    console.info("onElevate");
-    this.set('resultText', 'Terminating service to force reload...');
-    this.terminate();
-  },
   onTermination: function (sender, evt) {
     console.info("onTermination");
     this.set('resultText',"Native service terminated");
@@ -201,8 +188,8 @@ module.exports = kind({
     this.$.serviceStatus.send({});
 
     this.set('resultText',"Waiting for service status...");
-    sleep(1000).then(() => {
-      console.log("I waited 1000ms");
+    sleep(3000).then(() => {
+      console.log("I waited 3000ms");
       this.$.serviceStatus.send({});
     })
   },
