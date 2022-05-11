@@ -32,6 +32,7 @@ jobs:
           ref: e055fb9e15301a5cedfc8ce8c82f267a16d4a45f
           path: hyperion.ng
           submodules: recursive
+          fetch-depth: 0
 
       - name: Patch sources (force link w/ librt)
         run: sed -i -e 's/hidapi-libusb)$/rt hidapi-libusb)/g w /dev/stdout' libsrc/leddevice/CMakeLists.txt
