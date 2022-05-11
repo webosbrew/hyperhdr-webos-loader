@@ -29,7 +29,7 @@ jobs:
       - uses: actions/checkout@v3
         with:
           repository: hyperion-project/hyperion.ng
-          ref: e055fb9e15301a5cedfc8ce8c82f267a16d4a45f
+          ref: master
           path: hyperion.ng
           submodules: recursive
           fetch-depth: 0
