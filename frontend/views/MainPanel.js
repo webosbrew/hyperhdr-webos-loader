@@ -127,7 +127,7 @@ module.exports = kind({
   },
   reboot: function () {
     console.info("Sending reboot command");
-    //this.$.systemReboot.send({reason: 'SwDownload'});
+    this.$.systemReboot.send({reason: 'SwDownload'});
   },
   start: function () {
     console.info("Start clicked");
