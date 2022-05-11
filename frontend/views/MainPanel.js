@@ -182,16 +182,7 @@ module.exports = kind({
   },
   onTermination: function (sender, evt) {
     console.info("onTermination");
-    this.set('resultText',"Native service terminated");
-    console.log("Checking service status now");
-    // First call will fail: "..service is not running"
-    this.$.serviceStatus.send({});
-
-    this.set('resultText',"Waiting for service status...");
-    sleep(3000).then(() => {
-      console.log("I waited 3000ms");
-      this.$.serviceStatus.send({});
-    })
+    this.set('resultText',"Native service terminated - Please restart the app!");
   },
   onDaemonStart: function (sender, evt) {
     console.info("onDaemonStart");
