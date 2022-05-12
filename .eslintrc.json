@@ -19,7 +19,8 @@
         "lib/**",
         "node_modules/**",
         "dist/**",
-        "hyperion.ng/**",
+        "hyperhdr/**",
+        "hyperhdr-repo/**",
         "service/**",
         "tools/**"
     ],

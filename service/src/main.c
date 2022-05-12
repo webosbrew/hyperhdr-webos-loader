@@ -15,25 +15,25 @@ bool is_elevated()
     return (geteuid() == 0);
 }
 
-char *hyperiond_cmdline(char *args)
+char *hyperhdr_cmdline(char *args)
 {
     char *tmp = (char *)calloc(1, FILENAME_MAX);
-    snprintf(tmp, FILENAME_MAX, "/bin/bash -c 'LD_LIBRARY_PATH=%s OPENSSL_armcap=%i %s/hyperiond %s'", HYPERION_PATH, 0, HYPERION_PATH, args);
+    snprintf(tmp, FILENAME_MAX, "/bin/bash -c 'LD_LIBRARY_PATH=%s OPENSSL_armcap=%i %s/hyperhdr %s'", HYPERHDR_PATH, 0, HYPERHDR_PATH, args);
     return tmp;
 }
 
-char *hyperiond_start_cmdline()
+char *hyperhdr_start_cmdline()
 {
-    // Run hyperiond in background
-    return hyperiond_cmdline("&");
+    // Run hyperhdr in background
+    return hyperhdr_cmdline("&");
 }
 
-char *hyperiond_version_cmdline()
+char *hyperhdr_version_cmdline()
 {
-    return hyperiond_cmdline("--version");
+    return hyperhdr_cmdline("--version");
 }
 
-int hyperiond_start(service_t* service)
+int hyperhdr_start(service_t* service)
 {
     if (!is_elevated()) {
         return 1;
@@ -43,7 +43,7 @@ int hyperiond_start(service_t* service)
 
     service->running = true;
     // TODO: system() ftw
-    char *command = hyperiond_start_cmdline();
+    char *command = hyperhdr_start_cmdline();
     int res = system(command);
 
     if (res != 0) {
@@ -54,7 +54,7 @@ int hyperiond_start(service_t* service)
     return 0;
 }
 
-int hyperiond_stop(service_t* service)
+int hyperhdr_stop(service_t* service)
 {
     if (!is_elevated()) {
         return 1;
@@ -63,31 +63,31 @@ int hyperiond_stop(service_t* service)
     }
 
     // TODO: system() ftw
-    system("killall -9 hyperiond");
+    system("killall -9 hyperhdr");
     service->running = false;
 
     return 0;
 }
 
-int hyperiond_version(service_t* service)
+int hyperhdr_version(service_t* service)
 {
     int res = 0;
     // NOTE: --version call is fine even without root privileges
-    if (service->hyperiond_version == NULL) {
-        service->hyperiond_version = (char *)calloc(FILENAME_MAX, 1);
-        if (service->hyperiond_version == NULL) {
+    if (service->hyperhdr_version == NULL) {
+        service->hyperhdr_version = (char *)calloc(FILENAME_MAX, 1);
+        if (service->hyperhdr_version == NULL) {
             // Buffer allocation failed
             return 1;
         }
 
-        char *command = hyperiond_version_cmdline();
+        char *command = hyperhdr_version_cmdline();
         // Spawn process with read-only pipe
         FILE *fp = popen(command, "r");
         if (fp == NULL) {
             // Opening process failed
             res = 2;
         } else {
-            int bytes_read = fread(service->hyperiond_version, 1, FILENAME_MAX, fp);
+            int bytes_read = fread(service->hyperhdr_version, 1, FILENAME_MAX, fp);
             if (bytes_read == 0) {
                 // Reading process' stdout failed
                 res = 3;
@@ -107,21 +107,21 @@ bool service_method_start(LSHandle* sh, LSMessage* msg, void* data)
     LSErrorInit(&lserror);
 
     jvalue_ref jobj = jobject_create();
-    int res = hyperiond_start(service);
+    int res = hyperhdr_start(service);
 
     jobject_set(jobj, j_cstr_to_buffer("returnValue"), jboolean_create(res == 0));
     switch (res) {
         case 0:
-            jobject_set(jobj, j_cstr_to_buffer("status"), jstring_create("Hyperion.NG started successfully"));
+            jobject_set(jobj, j_cstr_to_buffer("status"), jstring_create("HyperHDR started successfully"));
             break;
         case 1:
             jobject_set(jobj, j_cstr_to_buffer("status"), jstring_create("Precondition fail: Not running elevated!"));
             break;
         case 2:
-            jobject_set(jobj, j_cstr_to_buffer("status"), jstring_create("Hyperion.NG was already running"));
+            jobject_set(jobj, j_cstr_to_buffer("status"), jstring_create("HyperHDR was already running"));
             break;
         case 3:
-            jobject_set(jobj, j_cstr_to_buffer("status"), jstring_create("Hyperion.NG failed to start, reason: Unknown"));
+            jobject_set(jobj, j_cstr_to_buffer("status"), jstring_create("HyperHDR failed to start, reason: Unknown"));
             break;
     }
     LSMessageReply(sh, msg, jvalue_tostring_simple(jobj), &lserror);
@@ -138,17 +138,17 @@ bool service_method_stop(LSHandle* sh, LSMessage* msg, void* data)
     LSErrorInit(&lserror);
 
     jvalue_ref jobj = jobject_create();
-    int res = hyperiond_stop(service);
+    int res = hyperhdr_stop(service);
     jobject_set(jobj, j_cstr_to_buffer("returnValue"), jboolean_create(res == 0));
     switch (res) {
         case 0:
-            jobject_set(jobj, j_cstr_to_buffer("status"), jstring_create("Hyperion.NG stopped successfully"));
+            jobject_set(jobj, j_cstr_to_buffer("status"), jstring_create("HyperHDR stopped successfully"));
             break;
         case 1:
             jobject_set(jobj, j_cstr_to_buffer("status"), jstring_create("Precondition fail: Not running elevated!"));
             break;
         case 2:
-            jobject_set(jobj, j_cstr_to_buffer("status"), jstring_create("Hyperion.NG was not running"));
+            jobject_set(jobj, j_cstr_to_buffer("status"), jstring_create("HyperHDR was not running"));
             break;
     }
     LSMessageReply(sh, msg, jvalue_tostring_simple(jobj), &lserror);
@@ -165,12 +165,12 @@ bool service_method_version(LSHandle* sh, LSMessage* msg, void* data)
     LSErrorInit(&lserror);
 
     jvalue_ref jobj = jobject_create();
-    int res = hyperiond_version(service);
+    int res = hyperhdr_version(service);
     jobject_set(jobj, j_cstr_to_buffer("returnValue"), jboolean_create(res == 0));
     jobject_set(jobj, j_cstr_to_buffer("returnCode"), jnumber_create_i32(res));
     switch (res) {
         case 0:
-            jobject_set(jobj, j_cstr_to_buffer("version"), jstring_create(service->hyperiond_version));
+            jobject_set(jobj, j_cstr_to_buffer("version"), jstring_create(service->hyperhdr_version));
             break;
         default:
             jobject_set(jobj, j_cstr_to_buffer("version"), jstring_create("Error while fetching"));
@@ -235,7 +235,7 @@ int main(int argc, char* argv[])
     LSError lserror;
 
     service.running = FALSE;
-    service.hyperiond_version = NULL;
+    service.hyperhdr_version = NULL;
 
     LSErrorInit(&lserror);
 

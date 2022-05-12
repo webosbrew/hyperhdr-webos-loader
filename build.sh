@@ -21,21 +21,21 @@ npm run build || exit 1
 echo ":: Service ::"
 npm run build-service || exit 1
 
-echo ":: Hyperion.NG ::"
-mkdir -p ${EXEC_DIR}/dist/service/hyperion
-cp -r ${EXEC_DIR}/hyperion/* ${EXEC_DIR}/dist/service/hyperion/ || exit 1
+echo ":: HyperHDR ::"
+mkdir -p ${EXEC_DIR}/dist/service/hyperhdr
+cp -r ${EXEC_DIR}/hyperhdr/* ${EXEC_DIR}/dist/service/hyperhdr/ || exit 1
 
 echo ":: Ensure executable bit set ::"
-for file in autostart.sh loader_service start_hyperiond
+for file in autostart.sh loader_service start_hyperhdr
 do
   FILE="${EXEC_DIR}/dist/service/${file}"
   echo "=> ${FILE}"
   chmod +x ${FILE}
 done
 
-for file in hyperiond hyperion-remote flatc flathash
+for file in hyperhdr hyperhdr-remote flatc flathash
 do
-  FILE="${EXEC_DIR}/dist/service/hyperion/${file}"
+  FILE="${EXEC_DIR}/dist/service/hyperhdr/${file}"
   echo "=> ${FILE}"
   chmod +x ${FILE}
 done

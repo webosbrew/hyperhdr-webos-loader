@@ -1,6 +1,6 @@
-# Hyperion.NG for WebOS
+# HyperHDR for WebOS
 
-Binaries are ready to install from [Homebrew Channel](https://repo.webosbrew.org/apps/org.webosbrew.hyperion.ng.loader)
+Binaries are ready to install from [Homebrew Channel](https://repo.webosbrew.org/apps/org.webosbrew.hyperhdr.loader)
 
 ## Requirements
 
@@ -12,7 +12,7 @@ Binaries are ready to install from [Homebrew Channel](https://repo.webosbrew.org
 
 ## Build
 
-Build hyperion.ng: `./build_hyperion_ng.sh`
+Build hyperhdr: `./build_hyperhdr.sh`
 
 Build webOS frontend/service: `./build.sh`
 
@@ -20,14 +20,16 @@ Both scripts take an environment variable `TOOLCHAIN_DIR`, defaulting to: `$HOME
 
 To provide an individual path, call `export TOOLCHAIN_DIR=/your/toolchain/path` before executing respective scripts.
 
-`build_hyperion_ng.sh` also takes two other environment variables:
+`build_hyperhdr.sh` also takes two other environment variables:
 
-- `HYPERION_NG_REPO`
-- `HYPERION_NG_BRANCH`
+- `HYPERHDR_REPO`
+- `HYPERHDR_BRANCH`
 
 ## References
 
-Ambient lighting service/daemon: [Hyperion.NG](https://github.com/hyperion-project/hyperion.ng)
+[Hyperion.NG](https://github.com/hyperion-project/hyperion.ng)
+
+[HyperHDR](https://github.com/awawa-dev/HyperHDR)
 
 Video grabber of webOS: [hyperion-webos](https://github.com/webosbrew/hyperion-webos)
 
@@ -41,4 +43,5 @@ Frontend of Video grabber hyperion-webos: [piccap](https://github.com/TBSniller/
 @Mariotaku
 @Lord-Grey
 @Paulchen-Panther
+@Awawa
 @chbartsch

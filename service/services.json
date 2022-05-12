@@ -1,10 +1,10 @@
 {
-  "id" : "org.webosbrew.hyperion.ng.loader.service",
-  "description":"Hyperion.NG loader service",
+  "id" : "org.webosbrew.hyperhdr.loader.service",
+  "description":"HyperHDR loader service",
   "engine":"native",
   "executable":"loader_service",
   "services": [ {
-    "name": "org.webosbrew.hyperion.ng.loader.service",
-    "description": "Hyperion.NG loader service"
+    "name": "org.webosbrew.hyperhdr.loader.service",
+    "description": "HyperHDR loader service"
   }]
 }

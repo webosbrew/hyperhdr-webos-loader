@@ -1,0 +1,4 @@
+#!/bin/sh
+LOGFILE="/tmp/hyperhdr.log"
+BASEDIR="/media/developer/apps/usr/palm/services/org.webosbrew.hyperhdr.loader.service/hyperhdr"
+OPENSSL_armcap=0 LD_LIBRARY_PATH=$BASEDIR $BASEDIR/hyperhdr > $LOGFILE 2>&1

@@ -2,6 +2,6 @@ build/
 node_modules/
 dist/
 .enyocache
-hyperion/
-hyperion.ng/
+hyperhdr-repo/
+hyperhdr/
 **/*.ipk

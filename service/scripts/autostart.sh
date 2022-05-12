@@ -1,4 +1,4 @@
 #!/bin/sh
 
-# Start hyperiond
-luna-send -n 1 'luna://org.webosbrew.hyperion.ng.loader.service/start' '{}'
+# Start HyperHDR
+luna-send -n 1 'luna://org.webosbrew.hyperhdr.loader.service/start' '{}'

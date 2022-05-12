@@ -2,12 +2,12 @@
 
 #include <glib.h>
 
-#define SERVICE_NAME "org.webosbrew.hyperion.ng.loader.service"
-#define HYPERION_PATH "/media/developer/apps/usr/palm/services/org.webosbrew.hyperion.ng.loader.service/hyperion"
+#define SERVICE_NAME "org.webosbrew.hyperhdr.loader.service"
+#define HYPERHDR_PATH "/media/developer/apps/usr/palm/services/org.webosbrew.hyperhdr.loader.service/hyperhdr"
 
 typedef struct {
     bool running;
-    char *hyperiond_version;
+    char *hyperhdr_version;
 } service_t;
 
 int service_start(service_t* service);

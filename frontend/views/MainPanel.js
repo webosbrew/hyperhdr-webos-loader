@@ -10,10 +10,10 @@ var
 	ToggleItem = require('moonstone/ToggleItem'),
   LabeledTextItem = require('moonstone/LabeledTextItem');
 
-var serviceName = "org.webosbrew.hyperion.ng.loader.service";
+var serviceName = "org.webosbrew.hyperhdr.loader.service";
 var servicePath = "/media/developer/apps/usr/palm/services/" + serviceName;
 var autostartFilepath = servicePath + "/autostart.sh";
-var linkPath = "/var/lib/webosbrew/init.d/90-start_hyperiond";
+var linkPath = "/var/lib/webosbrew/init.d/90-start_hyperhdr";
 var elevationCommand = "/media/developer/apps/usr/palm/services/org.webosbrew.hbchannel.service/elevate-service " + serviceName;
 
 var not = function (x) { return !x };
@@ -31,7 +31,7 @@ const sleep = (duration) => {
 module.exports = kind({
   name: 'MainPanel',
   kind: Panel,
-  title: 'Hyperion.NG',
+  title: 'HyperHDR',
   titleBelow: "Loader",
   headerType: 'medium',
   components: [
@@ -56,8 +56,8 @@ module.exports = kind({
             },
             {
               kind: LabeledTextItem,
-              label: 'Hyperion version',
-              name: 'hyperionVersion',
+              label: 'HyperHDR version',
+              name: 'hyperhdrVersion',
               text: 'unknown',
               disabled: true,
             },
@@ -73,11 +73,11 @@ module.exports = kind({
       {kind: Divider, content: 'Result'},
       {kind: BodyText, name: 'result', content: 'Nothing selected...'}
     ]},
-    {kind: LunaService, name: 'serviceStatus', service: 'luna://org.webosbrew.hyperion.ng.loader.service', method: 'status', onResponse: 'onServiceStatus', onError: 'onServiceStatus'},
-    {kind: LunaService, name: 'start', service: 'luna://org.webosbrew.hyperion.ng.loader.service', method: 'start', onResponse: 'onDaemonStart', onError: 'onDaemonStart'},
-    {kind: LunaService, name: 'stop', service: 'luna://org.webosbrew.hyperion.ng.loader.service', method: 'stop', onResponse: 'onDaemonStop', onError: 'onDaemonStop'},
-    {kind: LunaService, name: 'version', service: 'luna://org.webosbrew.hyperion.ng.loader.service', method: 'version', onResponse: 'onDaemonVersion', onError: 'onDaemonVersion'},
-    {kind: LunaService, name: 'terminate', service: 'luna://org.webosbrew.hyperion.ng.loader.service', method: 'terminate', onResponse: 'onTermination', onError: 'onTermination'},
+    {kind: LunaService, name: 'serviceStatus', service: 'luna://org.webosbrew.hyperhdr.loader.service', method: 'status', onResponse: 'onServiceStatus', onError: 'onServiceStatus'},
+    {kind: LunaService, name: 'start', service: 'luna://org.webosbrew.hyperhdr.loader.service', method: 'start', onResponse: 'onDaemonStart', onError: 'onDaemonStart'},
+    {kind: LunaService, name: 'stop', service: 'luna://org.webosbrew.hyperhdr.loader.service', method: 'stop', onResponse: 'onDaemonStop', onError: 'onDaemonStop'},
+    {kind: LunaService, name: 'version', service: 'luna://org.webosbrew.hyperhdr.loader.service', method: 'version', onResponse: 'onDaemonVersion', onError: 'onDaemonVersion'},
+    {kind: LunaService, name: 'terminate', service: 'luna://org.webosbrew.hyperhdr.loader.service', method: 'terminate', onResponse: 'onTermination', onError: 'onTermination'},
     {kind: LunaService, name: 'autostartStatusCheck', service: 'luna://org.webosbrew.hbchannel.service', method: 'exec', onResponse: 'onAutostartCheck', onError: 'onAutostartCheck'},
 
     {kind: LunaService, name: 'exec', service: 'luna://org.webosbrew.hbchannel.service', method: 'exec', onResponse: 'onExec', onError: 'onExec'},
@@ -87,7 +87,7 @@ module.exports = kind({
   autostartEnabled: false,
   serviceElevated: false,
   daemonRunning: false,
-  hyperionVersionText: 'unknown',
+  hyperhdrVersionText: 'unknown',
   resultText: 'unknown',
 
   bindings: [
@@ -95,7 +95,7 @@ module.exports = kind({
     {from: "serviceElevated", to: '$.startButton.disabled', transform: not},
     {from: "serviceElevated", to: '$.stopButton.disabled', transform: not},
     {from: "serviceElevated", to: '$.autostart.disabled', transform: not},
-    {from: "hyperionVersionText", to: '$.hyperionVersion.text'},
+    {from: "hyperhdrVersionText", to: '$.hyperhdrVersion.text'},
     {from: "serviceElevated", to: '$.elevationStatus.text', transform: yes_no_bool},
     {from: "daemonRunning", to: '$.daemonStatus.text', transform: yes_no_bool},
     {from: "resultText", to: '$.result.content'}
@@ -110,7 +110,7 @@ module.exports = kind({
     this.set('resultText','Checking service status...');
     this.$.serviceStatus.send({});
   },
-  // Elevates the native service - this enables hyperion.ng.loader.service to run as root by default
+  // Elevates the native service - this enables hyperhdr.loader.service to run as root by default
   elevate: function () {
     console.info("Sending elevation command");
     this.$.exec.send({command: elevationCommand});
@@ -188,25 +188,25 @@ module.exports = kind({
     console.info("onDaemonStart");
     if (evt.returnValue) {
       this.set('daemonRunning', true);
-      this.set('resultText', "Hyperiond started");
+      this.set('resultText', "HyperHDR started");
     } else {
-      this.set('resultText', "Hyperiond failed to start");
+      this.set('resultText', "HyperHDR failed to start");
     }
   },
   onDaemonStop: function (sender, evt) {
     console.info("onDaemonStop");
     if (evt.returnValue) {
       this.set('daemonRunning', false);
-      this.set('resultText', "Hyperiond stopped");
+      this.set('resultText', "HyperHDR stopped");
     } else {
-      this.set('resultText', "Hyperiond failed to stop");
+      this.set('resultText', "HyperHDR failed to stop");
     }
   },
   onDaemonVersion: function (sender, evt) {
     console.info("onDaemonVersion");
     console.info(evt);
     if (evt.returnValue) {
-      this.set('hyperionVersionText', evt.version);
+      this.set('hyperhdrVersionText', evt.version);
     }
   },
   autostartToggle: function (sender) {

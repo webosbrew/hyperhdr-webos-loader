@@ -1,4 +1,0 @@
-#!/bin/sh
-LOGFILE="/tmp/hyperion.ng.log"
-BASEDIR="/media/developer/apps/usr/palm/services/org.webosbrew.hyperion.ng.loader.service/hyperion"
-OPENSSL_armcap=0 LD_LIBRARY_PATH=$BASEDIR $BASEDIR/hyperiond > $LOGFILE 2>&1
