@@ -10,6 +10,16 @@
 
 GMainLoop *gmainLoop;
 
+// This is a deprecated symbol present in meta-lg-webos-ndk but missing in
+// latest buildroot NDK. It is required for proper public service registration
+// before webOS 3.5.
+//
+// SECURITY_COMPATIBILITY flag present in CMakeList disables deprecation notices, see:
+// https://github.com/webosose/luna-service2/blob/b74b1859372597fcd6f0f7d9dc3f300acbf6ed6c/include/public/luna-service2/lunaservice.h#L49-L53
+bool LSRegisterPubPriv(const char* name, LSHandle** sh,
+    bool public_bus,
+    LSError* lserror) __attribute__((weak));
+
 bool is_elevated()
 {
     return (geteuid() == 0);
@@ -242,9 +252,17 @@ int main()
     // create a GMainLoop
     gmainLoop = g_main_loop_new(NULL, FALSE);
 
-    if(!LSRegister(SERVICE_NAME, &handle, &lserror)) {
+    bool registered = false;
+
+    if (&LSRegisterPubPriv != 0) {
+        registered = LSRegisterPubPriv(SERVICE_NAME, &handle, true, &lserror);
+    } else {
+        registered = LSRegister(SERVICE_NAME, &handle, &lserror);
+    }
+
+    if (!registered) {
         LSErrorFree(&lserror);
-        return 0;
+        return -1;
     }
 
     LSRegisterCategory(handle, "/", methods, NULL, NULL, &lserror);

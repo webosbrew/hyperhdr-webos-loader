@@ -68,7 +68,7 @@ target_link_libraries (${BIN_NAME}
     ${GLIB2_LDFLAGS}
     ${PMLOG_LDFLAGS}
 )
-target_compile_options(${BIN_NAME} PRIVATE -Wall -Wextra -Wpedantic -Werror)
+target_compile_options(${BIN_NAME} PRIVATE -Wall -Wextra -Wpedantic -Werror -DSECURITY_COMPATIBILITY)
 
 file(COPY ${CMAKE_SOURCE_DIR}/services.json DESTINATION "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
 file(COPY ${CMAKE_SOURCE_DIR}/scripts/autostart.sh DESTINATION "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
