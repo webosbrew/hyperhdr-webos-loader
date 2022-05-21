@@ -220,11 +220,12 @@ bool service_method_terminate(LSHandle* sh, LSMessage* msg, void* data __attribu
 }
 
 LSMethod methods[] = {
-    {"start", service_method_start},
-    {"stop", service_method_stop},
-    {"status", service_method_status},
-    {"version", service_method_version},
-    {"terminate", service_method_terminate},
+    {"start", service_method_start, LUNA_METHOD_FLAGS_NONE },
+    {"stop", service_method_stop, LUNA_METHOD_FLAGS_NONE },
+    {"status", service_method_status, LUNA_METHOD_FLAGS_NONE },
+    {"version", service_method_version, LUNA_METHOD_FLAGS_NONE },
+    {"terminate", service_method_terminate, LUNA_METHOD_FLAGS_NONE },
+    { 0, 0, 0 }
 };
 
 int main()
