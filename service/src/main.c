@@ -201,9 +201,8 @@ bool service_method_status(LSHandle* sh, LSMessage* msg, void* data)
     return true;
 }
 
-bool service_method_terminate(LSHandle* sh, LSMessage* msg, void* data)
+bool service_method_terminate(LSHandle* sh, LSMessage* msg, void* data __attribute__((unused)))
 {
-    service_t* service = (service_t*)data;
     LSError lserror;
     LSErrorInit(&lserror);
 
@@ -228,7 +227,7 @@ LSMethod methods[] = {
     {"terminate", service_method_terminate},
 };
 
-int main(int argc, char* argv[])
+int main()
 {
     service_t service;
     LSHandle *handle = NULL;
