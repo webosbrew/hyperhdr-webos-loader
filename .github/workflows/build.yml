@@ -80,7 +80,6 @@ jobs:
             -DENABLE_V4L2=OFF \
             -DENABLE_X11=OFF \
             -DENABLE_PIPEWIRE=OFF \
-            -DENABLE_WS281PWM=OFF \
             -DENABLE_AVAHI=OFF \
             -DENABLE_SOUNDCAPLINUX=OFF \
             -DENABLE_CEC=OFF \
