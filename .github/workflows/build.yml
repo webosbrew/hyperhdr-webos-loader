@@ -83,7 +83,8 @@ jobs:
             -DENABLE_AVAHI=OFF \
             -DENABLE_SOUNDCAPLINUX=OFF \
             -DENABLE_CEC=OFF \
-            -DENABLE_PROTOBUF=OFF
+            -DENABLE_PROTOBUF=OFF \
+            -DENABLE_FRAMEBUFFER=OFF
           make
           popd
 
