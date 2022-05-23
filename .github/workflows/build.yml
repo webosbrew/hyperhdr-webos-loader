@@ -32,9 +32,6 @@ jobs:
           submodules: recursive
           fetch-depth: 0
 
-      - name: Patch sources (force link w/ librt)
-        run: sed -i -e 's/ssdp$/rt ssdp/g w /dev/stdout' sources/leddevice/CMakeLists.txt
-
       - name: Restore/Cache build directories
         uses: actions/cache@v3
         with:
