@@ -51,6 +51,7 @@ cmake .. \
   -DENABLE_SOUNDCAPLINUX=OFF \
   -DENABLE_CEC=OFF \
   -DENABLE_PROTOBUF=OFF \
+  -DENABLE_FRAMEBUFFER=OFF \
   || { echo "[-] Build -CONFIG- failed"; exit 1; }
 
 make -j9 || { echo "[-] Build -MAKE- failed"; exit 1; }
