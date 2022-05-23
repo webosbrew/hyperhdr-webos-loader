@@ -2,8 +2,6 @@
 # Usage:
 # TOOLCHAIN_DIR=<path_to_webos_buildroot_toolchain> ./build_hyperhdr.sh
 
-PATCH_LIBRT="yes"
-
 HYPERHDR_REPO="${HYPERHDR_REPO:-https://github.com/awawa-dev/HyperHDR}"
 HYPERHDR_BRANCH="${HYPERHDR_BRANCH:-master}"
 
@@ -32,12 +30,6 @@ if [ ! -d $HYPERHDR_REPO_DIR ]
 then
   echo ":: Cloning HyperHDR from repo '$HYPERHDR_REPO', branch: '$HYPERHDR_BRANCH'"
   git clone --recursive --branch $HYPERHDR_BRANCH $HYPERHDR_REPO $HYPERHDR_REPO_DIR || { echo "[-] Cloning git repo failed"; exit 1; }
-  
-  if [ ! -z $PATCH_LIBRT ]
-  then
-    echo "* Patching to force-link librt"
-    sed -i -e 's/ssdp$/rt ssdp/g w /dev/stdout' $HYPERHDR_REPO_DIR/sources/leddevice/CMakeLists.txt
-  fi
 fi
 
 if [ ! -d ${BUILD_DIR} ]
