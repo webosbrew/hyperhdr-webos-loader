@@ -14,7 +14,7 @@ var serviceName = "org.webosbrew.hyperhdr.loader.service";
 var servicePath = "/media/developer/apps/usr/palm/services/" + serviceName;
 var autostartFilepath = servicePath + "/autostart.sh";
 var linkPath = "/var/lib/webosbrew/init.d/90-start_hyperhdr";
-var elevationCommand = "/media/developer/apps/usr/palm/services/org.webosbrew.hbchannel.service/elevate-service " + serviceName;
+var elevationCommand = "/media/developer/apps/usr/palm/services/org.webosbrew.hbchannel.service/elevate-service " + serviceName + " && killall -9 loader_service";
 
 var not = function (x) { return !x };
 var yes_no_bool = function (x) {
@@ -89,6 +89,8 @@ module.exports = kind({
   hyperhdrVersionText: 'unknown',
   resultText: 'unknown',
 
+  initDone: false,
+
   bindings: [
     {from: "autostartEnabled", to: '$.autostart.checked'},
     {from: "serviceElevated", to: '$.startButton.disabled', transform: not},
@@ -103,11 +105,21 @@ module.exports = kind({
   create: function () {
     this.inherited(arguments);
     console.info("Application created");
-    // At first, elevate the native service
-    // It does not do harm if service is elevated already
-    this.elevate();
-    this.set('resultText','Checking service status...');
-    this.$.serviceStatus.send({});
+    this.set('resultText', 'Waiting for startup...');
+    // Spawn startup routine after 2 seconds, so UI has time to load
+    var self = this;
+    setTimeout(function() {
+      self.doStartup();
+    }, 3000);
+  },
+  // Spawned from this.create() with a little delay
+  doStartup: function() {
+    this.set('resultText', 'Startup routine started...');
+    var self = this;
+    // Start to continuosly poll service status
+    setInterval(function () {
+      self.$.serviceStatus.send({});
+    }, 2000);
   },
   // Elevates the native service - this enables hyperhdr.loader.service to run as root by default
   elevate: function () {
@@ -161,15 +173,24 @@ module.exports = kind({
   onServiceStatus: function (sender, evt) {
     console.info("onServiceStatus");
     console.info(sender, evt);
+
+    if (!evt.returnValue) {
+      console.info('Service status call failed!');
+      return;
+    }
+
     this.set('serviceElevated', evt.elevated);
     this.set('daemonRunning', evt.running);
-    this.set('resultText', 'Service status received..');
-    if (this.serviceElevated) {
+    if (this.serviceElevated && !this.initDone) {
+      this.set('resultText', 'Startup routine finished!');
+      this.initDone = true;
       this.checkAutostart();
       this.fetchVersion();
-    } else {
-      this.set('resultText', 'Restarting native service to elevate...');
-      this.terminate();
+    } else if (!this.serviceElevated) {
+      // Elevate the native service
+      // Eventually the next service status callback will report elevation
+      this.set('resultText', 'Trying to elevate...');
+      this.elevate();
     }
   },
   onAutostartCheck: function (sender, evt) {
