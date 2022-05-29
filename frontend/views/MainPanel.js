@@ -80,8 +80,7 @@ module.exports = kind({
     {kind: LunaService, name: 'terminate', service: 'luna://org.webosbrew.hyperhdr.loader.service', method: 'terminate', onResponse: 'onTermination', onError: 'onTermination'},
     {kind: LunaService, name: 'autostartStatusCheck', service: 'luna://org.webosbrew.hbchannel.service', method: 'exec', onResponse: 'onAutostartCheck', onError: 'onAutostartCheck'},
 
-    {kind: LunaService, name: 'exec', service: 'luna://org.webosbrew.hbchannel.service', method: 'exec', onResponse: 'onExec', onError: 'onExec'},
-    {kind: LunaService, name: 'systemReboot', service: 'luna://org.webosbrew.hbchannel.service', method: 'reboot'},
+    {kind: LunaService, name: 'exec', service: 'luna://org.webosbrew.hbchannel.service', method: 'exec', onResponse: 'onExec', onError: 'onExec'}
   ],
 
   autostartEnabled: false,
@@ -122,7 +121,7 @@ module.exports = kind({
   },
   reboot: function () {
     console.info("Sending reboot command");
-    this.$.systemReboot.send({reason: 'SwDownload'});
+    this.$.exec.send({command: 'reboot'});
   },
   start: function () {
     console.info("Start clicked");
