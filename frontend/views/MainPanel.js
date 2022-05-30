@@ -24,10 +24,6 @@ var yes_no_bool = function (x) {
     return "No";
 }
 
-const sleep = (duration) => {
-  return new Promise(resolve => setTimeout(resolve, duration));
-}
-
 module.exports = kind({
   name: 'MainPanel',
   kind: Panel,
