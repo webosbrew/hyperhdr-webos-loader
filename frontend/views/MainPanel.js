@@ -76,7 +76,8 @@ module.exports = kind({
     {kind: LunaService, name: 'terminate', service: 'luna://org.webosbrew.hyperhdr.loader.service', method: 'terminate', onResponse: 'onTermination', onError: 'onTermination'},
     {kind: LunaService, name: 'autostartStatusCheck', service: 'luna://org.webosbrew.hbchannel.service', method: 'exec', onResponse: 'onAutostartCheck', onError: 'onAutostartCheck'},
 
-    {kind: LunaService, name: 'exec', service: 'luna://org.webosbrew.hbchannel.service', method: 'exec', onResponse: 'onExec', onError: 'onExec'}
+    {kind: LunaService, name: 'exec', service: 'luna://org.webosbrew.hbchannel.service', method: 'exec', onResponse: 'onExec', onError: 'onExec'},
+    {kind: LunaService, name: 'systemReboot', service: 'luna://org.webosbrew.hbchannel.service', method: 'reboot' }
   ],
 
   autostartEnabled: false,
@@ -129,7 +130,7 @@ module.exports = kind({
   },
   reboot: function () {
     console.info("Sending reboot command");
-    this.$.exec.send({command: 'reboot'});
+    this.$.systemReboot.send({});
   },
   start: function () {
     console.info("Start clicked");
