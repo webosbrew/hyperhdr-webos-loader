@@ -106,7 +106,7 @@ module.exports = kind({
     this.inherited(arguments);
     console.info("Application created");
     this.set('resultText', 'Waiting for startup...');
-    // Spawn startup routine after 2 seconds, so UI has time to load
+    // Spawn startup routine after 3 seconds, so UI has time to load
     var self = this;
     setTimeout(function() {
       self.doStartup();
