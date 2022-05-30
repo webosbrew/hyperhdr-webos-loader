@@ -57,7 +57,7 @@ module.exports = kind({
               text: 'unknown',
               disabled: true,
             },
-            {kind: ToggleItem, name: "autostart", content: 'Autostart', checked: true, disabled: true, onchange: "autostartToggle"},
+            {kind: ToggleItem, name: "autostart", content: 'Autostart', checked: false, disabled: true, onchange: "autostartToggle"},
             {kind: Item, name: 'startButton', content: 'Start', ontap: "start", disabled: true},
             {kind: Item, name: 'stopButton', content: 'Stop', ontap: "stop", disabled: true},
             {kind: Item, name: 'rebootButton', content: 'Reboot system', ontap: "reboot"},
@@ -69,13 +69,13 @@ module.exports = kind({
       {kind: Divider, content: 'Result'},
       {kind: BodyText, name: 'result', content: 'Nothing selected...'}
     ]},
-    {kind: LunaService, name: 'serviceStatus', service: 'luna://org.webosbrew.hyperhdr.loader.service', method: 'status', onResponse: 'onServiceStatus', onError: 'onServiceStatus'},
-    {kind: LunaService, name: 'start', service: 'luna://org.webosbrew.hyperhdr.loader.service', method: 'start', onResponse: 'onDaemonStart', onError: 'onDaemonStart'},
-    {kind: LunaService, name: 'stop', service: 'luna://org.webosbrew.hyperhdr.loader.service', method: 'stop', onResponse: 'onDaemonStop', onError: 'onDaemonStop'},
-    {kind: LunaService, name: 'version', service: 'luna://org.webosbrew.hyperhdr.loader.service', method: 'version', onResponse: 'onDaemonVersion', onError: 'onDaemonVersion'},
-    {kind: LunaService, name: 'terminate', service: 'luna://org.webosbrew.hyperhdr.loader.service', method: 'terminate', onResponse: 'onTermination', onError: 'onTermination'},
-    {kind: LunaService, name: 'autostartStatusCheck', service: 'luna://org.webosbrew.hbchannel.service', method: 'exec', onResponse: 'onAutostartCheck', onError: 'onAutostartCheck'},
+    {kind: LunaService, name: 'serviceStatus', service: 'luna://org.webosbrew.hyperion.ng.loader.service', method: 'status', onResponse: 'onServiceStatus', onError: 'onServiceStatus'},
+    {kind: LunaService, name: 'start', service: 'luna://org.webosbrew.hyperion.ng.loader.service', method: 'start', onResponse: 'onDaemonStart', onError: 'onDaemonStart'},
+    {kind: LunaService, name: 'stop', service: 'luna://org.webosbrew.hyperion.ng.loader.service', method: 'stop', onResponse: 'onDaemonStop', onError: 'onDaemonStop'},
+    {kind: LunaService, name: 'version', service: 'luna://org.webosbrew.hyperion.ng.loader.service', method: 'version', onResponse: 'onDaemonVersion', onError: 'onDaemonVersion'},
+    {kind: LunaService, name: 'terminate', service: 'luna://org.webosbrew.hyperion.ng.loader.service', method: 'terminate', onResponse: 'onTermination', onError: 'onTermination'},
 
+    {kind: LunaService, name: 'autostartStatusCheck', service: 'luna://org.webosbrew.hbchannel.service', method: 'exec', onResponse: 'onAutostartCheck', onError: 'onAutostartCheck'},
     {kind: LunaService, name: 'exec', service: 'luna://org.webosbrew.hbchannel.service', method: 'exec', onResponse: 'onExec', onError: 'onExec'},
     {kind: LunaService, name: 'systemReboot', service: 'luna://org.webosbrew.hbchannel.service', method: 'reboot' }
   ],
@@ -87,13 +87,15 @@ module.exports = kind({
   resultText: 'unknown',
 
   initDone: false,
+  autostartStatusChecked: false,
 
   bindings: [
+    {from: "autostartStatusChecked", to: '$.autostart.disabled', transform: not},
     {from: "autostartEnabled", to: '$.autostart.checked'},
+
     {from: "serviceElevated", to: '$.startButton.disabled', transform: not},
     {from: "serviceElevated", to: '$.stopButton.disabled', transform: not},
-    {from: "serviceElevated", to: '$.autostart.disabled', transform: not},
-    {from: "hyperhdrVersionText", to: '$.hyperhdrVersion.text'},
+    {from: "hyperionVersionText", to: '$.hyperionVersion.text'},
     {from: "serviceElevated", to: '$.elevationStatus.text', transform: yes_no_bool},
     {from: "daemonRunning", to: '$.daemonStatus.text', transform: yes_no_bool},
     {from: "resultText", to: '$.result.content'}
@@ -192,6 +194,7 @@ module.exports = kind({
     // this.$.result.set('content', JSON.stringify(evt.data));
     this.set('autostartEnabled', (evt.returnValue && evt.stdoutString && evt.stdoutString.trim() == autostartFilepath));
     this.set('resultText', 'Autostart check completed');
+    this.set('autostartStatusChecked', true);
   },
   onTermination: function (sender, evt) {
     console.info("onTermination");
