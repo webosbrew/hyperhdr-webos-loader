@@ -106,6 +106,8 @@ module.exports = kind({
   },
   // Spawned from this.create()
   doStartup: function() {
+    console.info('doStartup');
+    this.checkAutostart();
     this.set('resultText', 'Waiting for service status data...');
     var self = this;
     // Start to continuosly poll service status
@@ -176,7 +178,6 @@ module.exports = kind({
     if (this.serviceElevated && !this.initDone) {
       this.set('resultText', 'Startup routine finished!');
       this.initDone = true;
-      this.checkAutostart();
       this.fetchVersion();
     } else if (!this.serviceElevated) {
       // Elevate the native service
