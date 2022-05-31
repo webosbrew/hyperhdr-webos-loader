@@ -193,7 +193,6 @@ module.exports = kind({
     console.info(sender, evt);
     // this.$.result.set('content', JSON.stringify(evt.data));
     this.set('autostartEnabled', (evt.returnValue && evt.stdoutString && evt.stdoutString.trim() == autostartFilepath));
-    this.set('resultText', 'Autostart check completed');
     this.set('autostartStatusChecked', true);
   },
   onTermination: function (sender, evt) {
