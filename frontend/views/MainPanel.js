@@ -77,6 +77,7 @@ module.exports = kind({
 
     {kind: LunaService, name: 'autostartStatusCheck', service: 'luna://org.webosbrew.hbchannel.service', method: 'exec', onResponse: 'onAutostartCheck', onError: 'onAutostartCheck'},
     {kind: LunaService, name: 'exec', service: 'luna://org.webosbrew.hbchannel.service', method: 'exec', onResponse: 'onExec', onError: 'onExec'},
+    {kind: LunaService, name: 'execSilent', service: 'luna://org.webosbrew.hbchannel.service', method: 'exec'},
     {kind: LunaService, name: 'systemReboot', service: 'luna://org.webosbrew.hbchannel.service', method: 'reboot' }
   ],
 
@@ -120,7 +121,7 @@ module.exports = kind({
   // Elevates the native service - this enables hyperhdr.loader.service to run as root by default
   elevate: function () {
     console.info("Sending elevation command");
-    this.$.exec.send({command: elevationCommand});
+    this.$.execSilent.send({command: elevationCommand});
   },
   // Kill the loader service. Needed to force-restart after elevation
   terminate: function() {
