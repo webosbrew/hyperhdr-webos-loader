@@ -49,7 +49,7 @@ int daemon_start(pid_t *pid)
     asprintf(&application_executable_path, "%s/hyperhdr", HYPERHDR_PATH);
 
     char *env_vars[] = {env_library_path, env_armcap, NULL};
-    char *argv[] = {application_executable_path};
+    char *argv[] = {application_executable_path, NULL};
     
     res = posix_spawn(pid, application_executable_path, NULL, NULL, argv, env_vars);
     DBG("posix_spawn: pid=%d, application_path=%s, env={%s,%s}",
