@@ -47,11 +47,11 @@ cmake .. \
   -DENABLE_V4L2=OFF \
   -DENABLE_X11=OFF \
   -DENABLE_PIPEWIRE=OFF \
-  -DENABLE_AVAHI=OFF \
   -DENABLE_SOUNDCAPLINUX=OFF \
   -DENABLE_CEC=OFF \
   -DENABLE_PROTOBUF=OFF \
   -DENABLE_FRAMEBUFFER=OFF \
+  -DENABLE_MQTT=OFF \
   || { echo "[-] Build -CONFIG- failed"; exit 1; }
 
 make -j9 || { echo "[-] Build -MAKE- failed"; exit 1; }
