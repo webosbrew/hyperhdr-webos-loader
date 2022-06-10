@@ -114,8 +114,10 @@ int hyperhdr_start(service_t* service)
 {
     int res = 0;
     if (!is_elevated()) {
+        ERR("hyperiond_start: Not elevated");
         return 1;
     } else if (is_running(service->daemon_pid)) {
+        ERR("hyperiond_start: Daemon already running");
         return 2;
     }
 
@@ -141,8 +143,10 @@ int hyperhdr_stop(service_t* service)
     int res = 0;
 
     if (!is_elevated()) {
+        ERR("hyperiond_stop: Not elevated");
         return 1;
     } else if (!is_running(service->daemon_pid)) {
+        ERR("hyperiond_stop: Daemon not running");
         return 2;
     }
 
@@ -169,7 +173,7 @@ int hyperhdr_version(service_t* service)
     if (service->hyperhdr_version == NULL) {
         service->hyperhdr_version = (char *)calloc(FILENAME_MAX, 1);
         if (service->hyperhdr_version == NULL) {
-            // Buffer allocation failed
+            ERR("hyperhdr_version: Failed version buf allocation");
             return 1;
         }
 
@@ -177,12 +181,12 @@ int hyperhdr_version(service_t* service)
         // Spawn process with read-only pipe
         FILE *fp = popen(command, "r");
         if (fp == NULL) {
-            // Opening process failed
+            ERR("hyperiond_version: popen failed");
             res = 2;
         } else {
             int bytes_read = fread(service->hyperhdr_version, 1, FILENAME_MAX, fp);
             if (bytes_read == 0) {
-                // Reading process' stdout failed
+                ERR("hyperiond_version: Reading process' stdout failed");
                 res = 3;
             }
 
@@ -306,6 +310,8 @@ bool service_method_terminate(LSHandle* sh, LSMessage* msg, void* data __attribu
     LSError lserror;
     LSErrorInit(&lserror);
 
+    WARN("service_method_terminate: Terminating");
+
     jvalue_ref jobj = jobject_create();
     jobject_set(jobj, j_cstr_to_buffer("returnValue"), jboolean_create(true));
 
@@ -352,6 +358,7 @@ int main()
     }
 
     if (!registered) {
+        ERR("Failed luna-service registration!");
         LSErrorFree(&lserror);
         return -1;
     }
