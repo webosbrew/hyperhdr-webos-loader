@@ -10,7 +10,9 @@ var
 	ToggleItem = require('moonstone/ToggleItem'),
   LabeledTextItem = require('moonstone/LabeledTextItem');
 
+var daemonName = "HyperHDR";
 var serviceName = "org.webosbrew.hyperhdr.loader.service";
+var lunaServiceUri = "luna://" + serviceName;
 var servicePath = "/media/developer/apps/usr/palm/services/" + serviceName;
 var autostartFilepath = servicePath + "/autostart.sh";
 var linkPath = "/var/lib/webosbrew/init.d/90-start_hyperhdr";
@@ -27,7 +29,7 @@ var yes_no_bool = function (x) {
 module.exports = kind({
   name: 'MainPanel',
   kind: Panel,
-  title: 'HyperHDR',
+  title: daemonName,
   titleBelow: "Loader",
   headerType: 'medium',
   components: [
@@ -52,8 +54,8 @@ module.exports = kind({
             },
             {
               kind: LabeledTextItem,
-              label: 'HyperHDR version',
-              name: 'hyperhdrVersion',
+              label: 'Daemon version',
+              name: 'daemonVersion',
               text: 'unknown',
               disabled: true,
             },
@@ -69,11 +71,11 @@ module.exports = kind({
       {kind: Divider, content: 'Result'},
       {kind: BodyText, name: 'result', content: 'Nothing selected...'}
     ]},
-    {kind: LunaService, name: 'serviceStatus', service: 'luna://org.webosbrew.hyperion.ng.loader.service', method: 'status', onResponse: 'onServiceStatus', onError: 'onServiceStatus'},
-    {kind: LunaService, name: 'start', service: 'luna://org.webosbrew.hyperion.ng.loader.service', method: 'start', onResponse: 'onDaemonStart', onError: 'onDaemonStart'},
-    {kind: LunaService, name: 'stop', service: 'luna://org.webosbrew.hyperion.ng.loader.service', method: 'stop', onResponse: 'onDaemonStop', onError: 'onDaemonStop'},
-    {kind: LunaService, name: 'version', service: 'luna://org.webosbrew.hyperion.ng.loader.service', method: 'version', onResponse: 'onDaemonVersion', onError: 'onDaemonVersion'},
-    {kind: LunaService, name: 'terminate', service: 'luna://org.webosbrew.hyperion.ng.loader.service', method: 'terminate', onResponse: 'onTermination', onError: 'onTermination'},
+    {kind: LunaService, name: 'serviceStatus', service: lunaServiceUri, method: 'status', onResponse: 'onServiceStatus', onError: 'onServiceStatus'},
+    {kind: LunaService, name: 'start', service: lunaServiceUri, method: 'start', onResponse: 'onDaemonStart', onError: 'onDaemonStart'},
+    {kind: LunaService, name: 'stop', service: lunaServiceUri, method: 'stop', onResponse: 'onDaemonStop', onError: 'onDaemonStop'},
+    {kind: LunaService, name: 'version', service: lunaServiceUri, method: 'version', onResponse: 'onDaemonVersion', onError: 'onDaemonVersion'},
+    {kind: LunaService, name: 'terminate', service: lunaServiceUri, method: 'terminate', onResponse: 'onTermination', onError: 'onTermination'},
 
     {kind: LunaService, name: 'autostartStatusCheck', service: 'luna://org.webosbrew.hbchannel.service', method: 'exec', onResponse: 'onAutostartCheck', onError: 'onAutostartCheck'},
     {kind: LunaService, name: 'exec', service: 'luna://org.webosbrew.hbchannel.service', method: 'exec', onResponse: 'onExec', onError: 'onExec'},
@@ -84,7 +86,7 @@ module.exports = kind({
   autostartEnabled: false,
   serviceElevated: false,
   daemonRunning: false,
-  hyperhdrVersionText: 'unknown',
+  daemonVersionText: 'unknown',
   resultText: 'unknown',
 
   initDone: false,
@@ -96,7 +98,7 @@ module.exports = kind({
 
     {from: "serviceElevated", to: '$.startButton.disabled', transform: not},
     {from: "serviceElevated", to: '$.stopButton.disabled', transform: not},
-    {from: "hyperionVersionText", to: '$.hyperionVersion.text'},
+    {from: "daemonVersionText", to: '$.daemonVersion.text'},
     {from: "serviceElevated", to: '$.elevationStatus.text', transform: yes_no_bool},
     {from: "daemonRunning", to: '$.daemonStatus.text', transform: yes_no_bool},
     {from: "resultText", to: '$.result.content'}
@@ -118,7 +120,7 @@ module.exports = kind({
       self.$.serviceStatus.send({});
     }, 2000);
   },
-  // Elevates the native service - this enables hyperhdr.loader.service to run as root by default
+  // Elevates the native service - this enables it to run as root by default
   elevate: function () {
     console.info("Sending elevation command");
     this.$.execSilent.send({command: elevationCommand});
@@ -204,25 +206,25 @@ module.exports = kind({
     console.info("onDaemonStart");
     if (evt.returnValue) {
       this.set('daemonRunning', true);
-      this.set('resultText', "HyperHDR started");
+      this.set('resultText', "Daemon started");
     } else {
-      this.set('resultText', "HyperHDR failed to start");
+      this.set('resultText', "Daemon failed to start");
     }
   },
   onDaemonStop: function (sender, evt) {
     console.info("onDaemonStop");
     if (evt.returnValue) {
       this.set('daemonRunning', false);
-      this.set('resultText', "HyperHDR stopped");
+      this.set('resultText', "Daemon stopped");
     } else {
-      this.set('resultText', "HyperHDR failed to stop");
+      this.set('resultText', "Daemon failed to stop");
     }
   },
   onDaemonVersion: function (sender, evt) {
     console.info("onDaemonVersion");
     console.info(evt);
     if (evt.returnValue) {
-      this.set('hyperhdrVersionText', evt.version);
+      this.set('daemonVersionText', evt.version);
     }
   },
   autostartToggle: function (sender) {
