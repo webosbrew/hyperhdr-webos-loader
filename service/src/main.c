@@ -297,6 +297,7 @@ bool service_method_status(LSHandle* sh, LSMessage* msg, void* data)
     jobject_set(jobj, j_cstr_to_buffer("returnValue"), jboolean_create(true));
     jobject_set(jobj, j_cstr_to_buffer("running"), jboolean_create(is_running(service->daemon_pid)));
     jobject_set(jobj, j_cstr_to_buffer("elevated"), jboolean_create(is_elevated()));
+    jobject_set(jobj, j_cstr_to_buffer("pid"), jnumber_create_i32(service->daemon_pid));
 
     LSMessageReply(sh, msg, jvalue_tostring_simple(jobj), &lserror);
 
