@@ -5,10 +5,12 @@
 #include <pthread.h>
 
 #define SERVICE_NAME "org.webosbrew.hyperhdr.loader.service"
-#define HYPERHDR_PATH "/media/developer/apps/usr/palm/services/org.webosbrew.hyperhdr.loader.service/hyperhdr"
+#define DAEMON_PATH "/media/developer/apps/usr/palm/services/org.webosbrew.hyperhdr.loader.service/hyperhdr"
+#define DAEMON_EXECUTABLE "hyperhdr"
+#define DAEMON_NAME "HyperHDR"
 
 typedef struct {
-    char *hyperhdr_version;
+    char *daemon_version;
     pid_t daemon_pid;
     pthread_t execution_thread;
 } service_t;

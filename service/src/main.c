@@ -29,14 +29,14 @@ bool is_elevated()
     return (geteuid() == 0);
 }
 
-char *hyperhdr_cmdline(char *args)
+char *daemon_cmdline(char *args)
 {
     char *tmp = (char *)calloc(1, FILENAME_MAX);
-    snprintf(tmp, FILENAME_MAX, "/bin/bash -c 'LD_LIBRARY_PATH=%s OPENSSL_armcap=%i %s/hyperhdr %s'", HYPERHDR_PATH, 0, HYPERHDR_PATH, args);
+    snprintf(tmp, FILENAME_MAX, "/bin/bash -c 'LD_LIBRARY_PATH=%s OPENSSL_armcap=%i %s/%s %s'", DAEMON_PATH, 0, DAEMON_PATH, DAEMON_EXECUTABLE, args);
     return tmp;
 }
 
-int daemon_start(pid_t *pid)
+int daemon_spawn(pid_t *pid)
 {
     int res = 0;
 
@@ -44,9 +44,9 @@ int daemon_start(pid_t *pid)
     char *env_armcap;
     char *application_executable_path;
 
-    asprintf(&env_library_path, "LD_LIBRARY_PATH=%s", HYPERHDR_PATH);
+    asprintf(&env_library_path, "LD_LIBRARY_PATH=%s", DAEMON_PATH);
     asprintf(&env_armcap, "OPENSSL_armcap=%d", 0);
-    asprintf(&application_executable_path, "%s/hyperhdr", HYPERHDR_PATH);
+    asprintf(&application_executable_path, "%s/%s", DAEMON_PATH, DAEMON_EXECUTABLE);
 
     char *env_vars[] = {env_library_path, env_armcap, "HOME=/home/root", NULL};
     char *argv[] = {application_executable_path, NULL};
@@ -101,9 +101,9 @@ void *execution_task(void *data)
     return NULL;
 }
 
-char *hyperhdr_version_cmdline()
+char *daemon_version_cmdline()
 {
-    return hyperhdr_cmdline("--version");
+    return daemon_cmdline("--version");
 }
 
 bool is_running(pid_t pid)
@@ -111,7 +111,7 @@ bool is_running(pid_t pid)
     return (pid > 0);
 }
 
-int hyperhdr_start(service_t* service)
+int daemon_start(service_t* service)
 {
     int res = 0;
     if (!is_elevated()) {
@@ -122,7 +122,7 @@ int hyperhdr_start(service_t* service)
         return 2;
     }
 
-    res = daemon_start(&service->daemon_pid);
+    res = daemon_spawn(&service->daemon_pid);
     DBG("daemon_start -> PID=%d", service->daemon_pid);
 
     if (res != 0) {
@@ -139,7 +139,7 @@ int hyperhdr_start(service_t* service)
     return 0;
 }
 
-int hyperhdr_stop(service_t* service)
+int daemon_stop(service_t* service)
 {
     int res = 0;
 
@@ -167,25 +167,25 @@ int hyperhdr_stop(service_t* service)
     return 0;
 }
 
-int hyperhdr_version(service_t* service)
+int daemon_version(service_t* service)
 {
     int res = 0;
     // NOTE: --version call is fine even without root privileges
-    if (service->hyperhdr_version == NULL) {
-        service->hyperhdr_version = (char *)calloc(FILENAME_MAX, 1);
-        if (service->hyperhdr_version == NULL) {
+    if (service->daemon_version == NULL) {
+        service->daemon_version = (char *)calloc(FILENAME_MAX, 1);
+        if (service->daemon_version == NULL) {
             ERR("Failed version buf allocation");
             return 1;
         }
 
-        char *command = hyperhdr_version_cmdline();
+        char *command = daemon_version_cmdline();
         // Spawn process with read-only pipe
         FILE *fp = popen(command, "r");
         if (fp == NULL) {
             ERR("popen failed");
             res = 2;
         } else {
-            int bytes_read = fread(service->hyperhdr_version, 1, FILENAME_MAX, fp);
+            int bytes_read = fread(service->daemon_version, 1, FILENAME_MAX, fp);
             if (bytes_read == 0) {
                 ERR("Reading process' stdout failed");
                 res = 3;
@@ -205,27 +205,27 @@ bool service_method_start(LSHandle* sh, LSMessage* msg, void* data)
     LSErrorInit(&lserror);
 
     jvalue_ref jobj = jobject_create();
-    int res = hyperhdr_start(service);
+    int res = daemon_start(service);
 
     jobject_set(jobj, j_cstr_to_buffer("returnValue"), jboolean_create(res == 0));
     switch (res) {
         case 0:
-            jobject_set(jobj, j_cstr_to_buffer("status"), jstring_create("HyperHDR started successfully"));
+            jobject_set(jobj, j_cstr_to_buffer("status"), jstring_create("Daemon started successfully"));
             break;
         case 1:
             jobject_set(jobj, j_cstr_to_buffer("status"), jstring_create("Precondition fail: Not running elevated!"));
             break;
         case 2:
-            jobject_set(jobj, j_cstr_to_buffer("status"), jstring_create("HyperHDR is already running"));
+            jobject_set(jobj, j_cstr_to_buffer("status"), jstring_create("Daemon is already running"));
             break;
         case 3:
-            jobject_set(jobj, j_cstr_to_buffer("status"), jstring_create("HyperHDR failed to start, posix_spawn failed"));
+            jobject_set(jobj, j_cstr_to_buffer("status"), jstring_create("Daemon failed to start, posix_spawn failed"));
             break;
         case 4:
-            jobject_set(jobj, j_cstr_to_buffer("status"), jstring_create("HyperHDR failed to start, pthread_create failed"));
+            jobject_set(jobj, j_cstr_to_buffer("status"), jstring_create("Daemon failed to start, pthread_create failed"));
             break;
         default:
-            jobject_set(jobj, j_cstr_to_buffer("status"), jstring_create("HyperHDR failed to start, reason: Unknown"));
+            jobject_set(jobj, j_cstr_to_buffer("status"), jstring_create("Daemon failed to start, reason: Unknown"));
     }
     LSMessageReply(sh, msg, jvalue_tostring_simple(jobj), &lserror);
 
@@ -241,20 +241,20 @@ bool service_method_stop(LSHandle* sh, LSMessage* msg, void* data)
     LSErrorInit(&lserror);
 
     jvalue_ref jobj = jobject_create();
-    int res = hyperhdr_stop(service);
+    int res = daemon_stop(service);
     jobject_set(jobj, j_cstr_to_buffer("returnValue"), jboolean_create(res == 0));
     switch (res) {
         case 0:
-            jobject_set(jobj, j_cstr_to_buffer("status"), jstring_create("HyperHDR stopped successfully"));
+            jobject_set(jobj, j_cstr_to_buffer("status"), jstring_create("Daemon stopped successfully"));
             break;
         case 1:
             jobject_set(jobj, j_cstr_to_buffer("status"), jstring_create("Precondition fail: Not running elevated!"));
             break;
         case 2:
-            jobject_set(jobj, j_cstr_to_buffer("status"), jstring_create("HyperHDR is not running"));
+            jobject_set(jobj, j_cstr_to_buffer("status"), jstring_create("Daemon is not running"));
             break;
         default:
-            jobject_set(jobj, j_cstr_to_buffer("status"), jstring_create("HyperHDR failed to stop, reason: Unknown"));
+            jobject_set(jobj, j_cstr_to_buffer("status"), jstring_create("Daemon failed to stop, reason: Unknown"));
     }
     LSMessageReply(sh, msg, jvalue_tostring_simple(jobj), &lserror);
 
@@ -270,12 +270,12 @@ bool service_method_version(LSHandle* sh, LSMessage* msg, void* data)
     LSErrorInit(&lserror);
 
     jvalue_ref jobj = jobject_create();
-    int res = hyperhdr_version(service);
+    int res = daemon_version(service);
     jobject_set(jobj, j_cstr_to_buffer("returnValue"), jboolean_create(res == 0));
     jobject_set(jobj, j_cstr_to_buffer("returnCode"), jnumber_create_i32(res));
     switch (res) {
         case 0:
-            jobject_set(jobj, j_cstr_to_buffer("version"), jstring_create(service->hyperhdr_version));
+            jobject_set(jobj, j_cstr_to_buffer("version"), jstring_create(service->daemon_version));
             break;
         default:
             jobject_set(jobj, j_cstr_to_buffer("version"), jstring_create("Error while fetching"));
@@ -299,6 +299,7 @@ bool service_method_status(LSHandle* sh, LSMessage* msg, void* data)
     jobject_set(jobj, j_cstr_to_buffer("running"), jboolean_create(is_running(service->daemon_pid)));
     jobject_set(jobj, j_cstr_to_buffer("elevated"), jboolean_create(is_elevated()));
     jobject_set(jobj, j_cstr_to_buffer("pid"), jnumber_create_i32(service->daemon_pid));
+    jobject_set(jobj, j_cstr_to_buffer("daemon"), jstring_create(DAEMON_NAME));
 
     LSMessageReply(sh, msg, jvalue_tostring_simple(jobj), &lserror);
 
@@ -343,7 +344,7 @@ int main()
     LSError lserror;
 
     service.daemon_pid = 0;
-    service.hyperhdr_version = NULL;
+    service.daemon_version = NULL;
 
     log_init();
     log_set_level(Debug);
