@@ -1,8 +1,11 @@
+#define _GNU_SOURCE
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-#include <unistd.h>
-#include <glib.h>
+#include <spawn.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <signal.h>
 #include <glib-object.h>
 #include <luna-service2/lunaservice.h>
 #include <pbnjson.h>
@@ -32,10 +35,68 @@ char *hyperhdr_cmdline(char *args)
     return tmp;
 }
 
-char *hyperhdr_start_cmdline()
+int daemon_start(pid_t *pid)
 {
-    // Run hyperhdr in background
-    return hyperhdr_cmdline("&");
+    int res = 0;
+
+    char *env_library_path;
+    char *env_armcap;
+    char *application_executable_path;
+
+    asprintf(&env_library_path, "LD_LIBRARY_PATH=%s", HYPERHDR_PATH);
+    asprintf(&env_armcap, "OPENSSL_armcap=%d", 0);
+    asprintf(&application_executable_path, "%s/hyperhdr", HYPERHDR_PATH);
+
+    char *env_vars[] = {env_library_path, env_armcap, NULL};
+    char *argv[] = {application_executable_path};
+    
+    res = posix_spawn(pid, application_executable_path, NULL, NULL, argv, env_vars);
+    DBG("posix_spawn: pid=%d, application_path=%s, env={%s,%s}",
+            *pid, application_executable_path, env_library_path, env_armcap);
+
+    free(env_library_path);
+    free(env_armcap);
+    free(application_executable_path);
+
+    return res;
+}
+
+void *execution_task(void *data)
+{
+    int res = 0;
+    int status = 0;
+
+    service_t *service = (service_t *)data;
+
+    do {
+        if (service->daemon_pid <= 0) {
+            WARN("Invalid daemon PID: %d - exiting execution loop");
+            break;
+        }
+        res = waitpid(service->daemon_pid, &status, WNOHANG);
+        DBG("waitpid: pid=%d, status=%d, res=%d", service->daemon_pid, status, res);
+        
+        if (res == -1) {
+            ERR("waitpid: res=%d", res);
+            break;
+        }
+
+        if (WIFEXITED(status)) {
+            INFO("Child status: exited, status=%d\n", WEXITSTATUS(status));
+        } else if (WIFSIGNALED(status)) {
+            INFO("Child status: killed by signal %d\n", WTERMSIG(status));
+        } else if (WIFSTOPPED(status)) {
+            INFO("Child status: stopped by signal %d\n", WSTOPSIG(status));
+        } else if (WIFCONTINUED(status)) {
+            INFO("Child status: continued\n");
+        }
+    
+        usleep(200 * 1000); // 200ms
+
+    } while (!WIFEXITED(status) && !WIFSIGNALED(status));
+
+    service->daemon_pid = 0;
+    return NULL;
 }
 
 char *hyperhdr_version_cmdline()
@@ -43,22 +104,32 @@ char *hyperhdr_version_cmdline()
     return hyperhdr_cmdline("--version");
 }
 
+bool is_running(pid_t pid)
+{
+    return (pid > 0);
+}
+
 int hyperhdr_start(service_t* service)
 {
+    int res = 0;
     if (!is_elevated()) {
         return 1;
-    } else if (service->running) {
+    } else if (is_running(service->daemon_pid)) {
         return 2;
     }
 
-    service->running = true;
-    // TODO: system() ftw
-    char *command = hyperhdr_start_cmdline();
-    int res = system(command);
+    res = daemon_start(&service->daemon_pid);
+    DBG("hyperhdr: daemon_start -> PID=%d", service->daemon_pid);
 
     if (res != 0) {
-        service->running = false;
+        ERR("hyperhdr: Failed daemon_start with res=%d", res);
         return 3;
+    }
+
+    res = pthread_create(&service->execution_thread, NULL, execution_task, service);
+    if (res != 0) {
+        ERR("hyperhdr_start: pthread_create failed, res=%d", res);
+        return 4;
     }
 
     return 0;
@@ -66,15 +137,26 @@ int hyperhdr_start(service_t* service)
 
 int hyperhdr_stop(service_t* service)
 {
+    int res = 0;
+
     if (!is_elevated()) {
         return 1;
-    } else if (!service->running) {
+    } else if (!is_running(service->daemon_pid)) {
         return 2;
     }
 
-    // TODO: system() ftw
-    system("killall -9 hyperhdr");
-    service->running = false;
+    res = kill(service->daemon_pid, SIGTERM);
+    if (res != 0) {
+        ERR("hyperhdr_stop: kill failed, res=%d", res);
+        return 3;
+    }
+
+    res = pthread_join(service->execution_thread, NULL);
+    if (res != 0) {
+        ERR("hyperhdr_stop: pthread_join failed, res=%d", res);
+        return 4;
+    }
+    service->execution_thread = NULL;
 
     return 0;
 }
@@ -131,8 +213,13 @@ bool service_method_start(LSHandle* sh, LSMessage* msg, void* data)
             jobject_set(jobj, j_cstr_to_buffer("status"), jstring_create("HyperHDR was already running"));
             break;
         case 3:
-            jobject_set(jobj, j_cstr_to_buffer("status"), jstring_create("HyperHDR failed to start, reason: Unknown"));
+            jobject_set(jobj, j_cstr_to_buffer("status"), jstring_create("HyperHDR failed to start, posix_spawn failed"));
             break;
+        case 4:
+            jobject_set(jobj, j_cstr_to_buffer("status"), jstring_create("HyperHDR failed to start, pthread_create failed"));
+            break;
+        default:
+            jobject_set(jobj, j_cstr_to_buffer("status"), jstring_create("HyperHDR failed to start, reason: Unknown"));
     }
     LSMessageReply(sh, msg, jvalue_tostring_simple(jobj), &lserror);
 
@@ -160,6 +247,8 @@ bool service_method_stop(LSHandle* sh, LSMessage* msg, void* data)
         case 2:
             jobject_set(jobj, j_cstr_to_buffer("status"), jstring_create("HyperHDR was not running"));
             break;
+        default:
+            jobject_set(jobj, j_cstr_to_buffer("status"), jstring_create("HyperHDR failed to stop, reason: Unknown"));
     }
     LSMessageReply(sh, msg, jvalue_tostring_simple(jobj), &lserror);
 
@@ -201,7 +290,7 @@ bool service_method_status(LSHandle* sh, LSMessage* msg, void* data)
 
     jvalue_ref jobj = jobject_create();
     jobject_set(jobj, j_cstr_to_buffer("returnValue"), jboolean_create(true));
-    jobject_set(jobj, j_cstr_to_buffer("running"), jboolean_create(service->running));
+    jobject_set(jobj, j_cstr_to_buffer("running"), jboolean_create(is_running(service->daemon_pid)));
     jobject_set(jobj, j_cstr_to_buffer("elevated"), jboolean_create(is_elevated()));
 
     LSMessageReply(sh, msg, jvalue_tostring_simple(jobj), &lserror);
@@ -240,11 +329,11 @@ LSMethod methods[] = {
 
 int main()
 {
-    service_t service;
+    service_t service = {0};
     LSHandle *handle = NULL;
     LSError lserror;
 
-    service.running = FALSE;
+    service.daemon_pid = 0;
     service.hyperhdr_version = NULL;
 
     LSErrorInit(&lserror);
