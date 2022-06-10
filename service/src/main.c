@@ -52,7 +52,7 @@ int daemon_start(pid_t *pid)
     char *argv[] = {application_executable_path, NULL};
     
     res = posix_spawn(pid, application_executable_path, NULL, NULL, argv, env_vars);
-    DBG("posix_spawn: pid=%d, application_path=%s, env={%s,%s}",
+    DBG("pid=%d, application_path=%s, env={%s,%s}",
             *pid, application_executable_path, env_library_path, env_armcap);
 
     free(env_library_path);
@@ -115,24 +115,24 @@ int hyperhdr_start(service_t* service)
 {
     int res = 0;
     if (!is_elevated()) {
-        ERR("hyperiond_start: Not elevated");
+        ERR("Not elevated");
         return 1;
     } else if (is_running(service->daemon_pid)) {
-        ERR("hyperiond_start: Daemon already running");
+        ERR("Daemon already running");
         return 2;
     }
 
     res = daemon_start(&service->daemon_pid);
-    DBG("hyperhdr: daemon_start -> PID=%d", service->daemon_pid);
+    DBG("daemon_start -> PID=%d", service->daemon_pid);
 
     if (res != 0) {
-        ERR("hyperhdr: Failed daemon_start with res=%d", res);
+        ERR("Failed daemon_start with res=%d", res);
         return 3;
     }
 
     res = pthread_create(&service->execution_thread, NULL, execution_task, service);
     if (res != 0) {
-        ERR("hyperhdr_start: pthread_create failed, res=%d", res);
+        ERR("pthread_create failed, res=%d", res);
         return 4;
     }
 
@@ -144,22 +144,22 @@ int hyperhdr_stop(service_t* service)
     int res = 0;
 
     if (!is_elevated()) {
-        ERR("hyperiond_stop: Not elevated");
+        ERR("Not elevated");
         return 1;
     } else if (!is_running(service->daemon_pid)) {
-        ERR("hyperiond_stop: Daemon not running");
+        ERR("Daemon not running");
         return 2;
     }
 
     res = kill(service->daemon_pid, SIGTERM);
     if (res != 0) {
-        ERR("hyperhdr_stop: kill failed, res=%d", res);
+        ERR("kill failed, res=%d", res);
         return 3;
     }
 
     res = pthread_join(service->execution_thread, NULL);
     if (res != 0) {
-        ERR("hyperhdr_stop: pthread_join failed, res=%d", res);
+        ERR("pthread_join failed, res=%d", res);
         return 4;
     }
     service->execution_thread = (pthread_t) NULL;
@@ -174,7 +174,7 @@ int hyperhdr_version(service_t* service)
     if (service->hyperhdr_version == NULL) {
         service->hyperhdr_version = (char *)calloc(FILENAME_MAX, 1);
         if (service->hyperhdr_version == NULL) {
-            ERR("hyperhdr_version: Failed version buf allocation");
+            ERR("Failed version buf allocation");
             return 1;
         }
 
@@ -182,12 +182,12 @@ int hyperhdr_version(service_t* service)
         // Spawn process with read-only pipe
         FILE *fp = popen(command, "r");
         if (fp == NULL) {
-            ERR("hyperiond_version: popen failed");
+            ERR("popen failed");
             res = 2;
         } else {
             int bytes_read = fread(service->hyperhdr_version, 1, FILENAME_MAX, fp);
             if (bytes_read == 0) {
-                ERR("hyperiond_version: Reading process' stdout failed");
+                ERR("Reading process' stdout failed");
                 res = 3;
             }
 
@@ -312,7 +312,7 @@ bool service_method_terminate(LSHandle* sh, LSMessage* msg, void* data __attribu
     LSError lserror;
     LSErrorInit(&lserror);
 
-    WARN("service_method_terminate: Terminating");
+    WARN("Terminating");
 
     jvalue_ref jobj = jobject_create();
     jobject_set(jobj, j_cstr_to_buffer("returnValue"), jboolean_create(true));
