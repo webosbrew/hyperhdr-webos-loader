@@ -193,6 +193,9 @@ jobs:
           chmod +x ./dist/service/hyperhdr/flatc
           chmod +x ./dist/service/hyperhdr/flathash
 
+      - name: Copy HDR LUT
+        run: unxz -dc ./resources/flat_lut_lin_tables.3d.xz > ./dist/service/hyperhdr/flat_lut_lin_tables.3d
+
       - run: npm run package
       - run: npm run gen-manifest
 
