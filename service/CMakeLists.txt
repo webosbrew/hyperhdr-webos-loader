@@ -52,6 +52,8 @@ set(BIN_NAME loader_service)
 
 set(SRC_LIST
     ${CMAKE_SOURCE_DIR}/src/main.c
+    ${CMAKE_SOURCE_DIR}/src/log.c
+    ${CMAKE_SOURCE_DIR}/src/utils.c
 )
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/dist/")
@@ -62,6 +64,8 @@ set(CMAKE_EXE_LINKER_FLAGS "-Wl,--allow-shlib-undefined")
 set_target_properties(${BIN_NAME} PROPERTIES LINKER_LANGUAGE C)
 
 target_link_libraries (${BIN_NAME}
+    rt
+    pthread
     ${GTHREAD2_LDFLAGS}
     ${PBNJSON_LDFLAGS}
     ${LS2_LDFLAGS}
