@@ -40,5 +40,8 @@ do
   chmod +x ${FILE}
 done
 
+echo ":: Copy HDR LUT"
+unxz -dc ${EXEC_DIR}/resources/flat_lut_lin_tables.3d.xz > ${EXEC_DIR}/dist/service/hyperhdr/flat_lut_lin_tables.3d
+
 echo ":: Package into IPK ::"
 npm run package || exit 1
