@@ -10,6 +10,7 @@
 #include <luna-service2/lunaservice.h>
 #include <pbnjson.h>
 #include "service.h"
+#include "log.h"
 
 GMainLoop *gmainLoop;
 
@@ -156,7 +157,7 @@ int hyperhdr_stop(service_t* service)
         ERR("hyperhdr_stop: pthread_join failed, res=%d", res);
         return 4;
     }
-    service->execution_thread = NULL;
+    service->execution_thread = (pthread_t) NULL;
 
     return 0;
 }
@@ -336,6 +337,7 @@ int main()
     service.daemon_pid = 0;
     service.hyperhdr_version = NULL;
 
+    log_init();
     LSErrorInit(&lserror);
 
     // create a GMainLoop
