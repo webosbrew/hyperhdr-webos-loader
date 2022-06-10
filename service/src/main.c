@@ -48,7 +48,7 @@ int daemon_start(pid_t *pid)
     asprintf(&env_armcap, "OPENSSL_armcap=%d", 0);
     asprintf(&application_executable_path, "%s/hyperhdr", HYPERHDR_PATH);
 
-    char *env_vars[] = {env_library_path, env_armcap, NULL};
+    char *env_vars[] = {env_library_path, env_armcap, "HOME=/home/root", NULL};
     char *argv[] = {application_executable_path, NULL};
     
     res = posix_spawn(pid, application_executable_path, NULL, NULL, argv, env_vars);
@@ -66,6 +66,7 @@ void *execution_task(void *data)
 {
     int res = 0;
     int status = 0;
+    bool run_loop = true;
 
     service_t *service = (service_t *)data;
 
@@ -75,26 +76,26 @@ void *execution_task(void *data)
             break;
         }
         res = waitpid(service->daemon_pid, &status, WNOHANG);
-        DBG("waitpid: pid=%d, status=%d, res=%d", service->daemon_pid, status, res);
-        
-        if (res == -1) {
+
+        if (res == service->daemon_pid) {
+            if (WIFEXITED(status)) {
+                INFO("Child status: exited, status=%d\n", WEXITSTATUS(status));
+                run_loop = false;
+            } else if (WIFSIGNALED(status)) {
+                INFO("Child status: killed by signal %d\n", WTERMSIG(status));
+                run_loop = false;
+            } else if (WIFSTOPPED(status)) {
+                INFO("Child status: stopped by signal %d\n", WSTOPSIG(status));
+            } else if (WIFCONTINUED(status)) {
+                INFO("Child status: continued\n");
+            }
+        } else if (res == -1) {
             ERR("waitpid: res=%d", res);
-            break;
+            run_loop = false;
+        } else {
+            usleep(500 * 1000); // 500ms
         }
-
-        if (WIFEXITED(status)) {
-            INFO("Child status: exited, status=%d\n", WEXITSTATUS(status));
-        } else if (WIFSIGNALED(status)) {
-            INFO("Child status: killed by signal %d\n", WTERMSIG(status));
-        } else if (WIFSTOPPED(status)) {
-            INFO("Child status: stopped by signal %d\n", WSTOPSIG(status));
-        } else if (WIFCONTINUED(status)) {
-            INFO("Child status: continued\n");
-        }
-    
-        usleep(200 * 1000); // 200ms
-
-    } while (!WIFEXITED(status) && !WIFSIGNALED(status));
+    } while (run_loop);
 
     service->daemon_pid = 0;
     return NULL;
@@ -215,7 +216,7 @@ bool service_method_start(LSHandle* sh, LSMessage* msg, void* data)
             jobject_set(jobj, j_cstr_to_buffer("status"), jstring_create("Precondition fail: Not running elevated!"));
             break;
         case 2:
-            jobject_set(jobj, j_cstr_to_buffer("status"), jstring_create("HyperHDR was already running"));
+            jobject_set(jobj, j_cstr_to_buffer("status"), jstring_create("HyperHDR is already running"));
             break;
         case 3:
             jobject_set(jobj, j_cstr_to_buffer("status"), jstring_create("HyperHDR failed to start, posix_spawn failed"));
@@ -250,7 +251,7 @@ bool service_method_stop(LSHandle* sh, LSMessage* msg, void* data)
             jobject_set(jobj, j_cstr_to_buffer("status"), jstring_create("Precondition fail: Not running elevated!"));
             break;
         case 2:
-            jobject_set(jobj, j_cstr_to_buffer("status"), jstring_create("HyperHDR was not running"));
+            jobject_set(jobj, j_cstr_to_buffer("status"), jstring_create("HyperHDR is not running"));
             break;
         default:
             jobject_set(jobj, j_cstr_to_buffer("status"), jstring_create("HyperHDR failed to stop, reason: Unknown"));
@@ -345,6 +346,7 @@ int main()
     service.hyperhdr_version = NULL;
 
     log_init();
+    log_set_level(Debug);
     LSErrorInit(&lserror);
 
     // create a GMainLoop
@@ -359,7 +361,7 @@ int main()
     }
 
     if (!registered) {
-        ERR("Failed luna-service registration!");
+        ERR("Unable to register on Luna bus: %s", lserror.message);
         LSErrorFree(&lserror);
         return -1;
     }
