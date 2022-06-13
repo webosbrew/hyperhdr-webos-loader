@@ -333,22 +333,29 @@ bool service_method_status(LSHandle* sh, LSMessage* msg, void* data)
     return true;
 }
 
-bool service_method_terminate(LSHandle* sh, LSMessage* msg, void* data __attribute__((unused)))
+bool service_method_terminate(LSHandle* sh, LSMessage* msg, void* data)
 {
+    service_t* service = (service_t*)data;
     LSError lserror;
     LSErrorInit(&lserror);
 
     WARN("Terminating");
 
+    int res = daemon_terminate(service);
+
     jvalue_ref jobj = jobject_create();
-    jobject_set(jobj, j_cstr_to_buffer("returnValue"), jboolean_create(true));
+    jobject_set(jobj, j_cstr_to_buffer("returnValue"), jboolean_create(res == 0));
 
     LSMessageReply(sh, msg, jvalue_tostring_simple(jobj), &lserror);
 
     j_release(&jobj);
 
-    // Stopping mainloop!
-    g_main_loop_quit(gmainLoop);
+    if (res == 0) {
+        // Stopping mainloop!
+        g_main_loop_quit(gmainLoop);
+    } else {
+        ERR("Failed to terminate self, daemon was not able to stop");
+    }
 
     return true;
 }
