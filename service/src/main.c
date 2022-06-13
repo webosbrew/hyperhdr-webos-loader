@@ -62,6 +62,38 @@ int daemon_spawn(pid_t *pid)
     return res;
 }
 
+int daemon_terminate(service_t *service)
+{
+    int res = 0;
+
+    if (service->daemon_pid > 0) {
+        res = kill(service->daemon_pid, SIGTERM);
+        if (res != 0) {
+            ERR("kill failed, res=%d", res);
+            return 1;
+        }
+    } else {
+        ERR("PID not set: %d", service->daemon_pid);
+        return 2;
+    }
+
+
+    if (service->execution_thread != (pthread_t) NULL) {
+        res = pthread_join(service->execution_thread, NULL);
+        if (res != 0) {
+            ERR("pthread_join failed, res=%d", res);
+            return 3;
+        }
+        service->execution_thread = (pthread_t) NULL;
+    }
+    else {
+        ERR("Execution thread is not up");
+        return 4;
+    }
+
+    return res;
+}
+
 void *execution_task(void *data)
 {
     int res = 0;
@@ -151,18 +183,11 @@ int daemon_stop(service_t* service)
         return 2;
     }
 
-    res = kill(service->daemon_pid, SIGTERM);
+    res = daemon_terminate(service);
     if (res != 0) {
-        ERR("kill failed, res=%d", res);
+        ERR("Daemon termination failed, res=%d", res);
         return 3;
     }
-
-    res = pthread_join(service->execution_thread, NULL);
-    if (res != 0) {
-        ERR("pthread_join failed, res=%d", res);
-        return 4;
-    }
-    service->execution_thread = (pthread_t) NULL;
 
     return 0;
 }
