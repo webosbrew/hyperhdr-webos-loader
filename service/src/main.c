@@ -379,6 +379,8 @@ int main()
     service.daemon_version = NULL;
 
     log_init();
+    INFO("Starting up...");
+
     log_set_level(Debug);
     LSErrorInit(&lserror);
 
@@ -404,10 +406,19 @@ int main()
 
     LSGmainAttach(handle, gmainLoop, &lserror);
 
+    DBG("Going into main loop..");
+
     // run to check continuously for new events from each of the event sources
     g_main_loop_run(gmainLoop);
+
+    DBG("Main loop quit...");
+
+    DBG("Cleaning up service...");
+    daemon_terminate(&service);
+
     // Decreases the reference count on a GMainLoop object by one
     g_main_loop_unref(gmainLoop);
 
+    DBG("Service main finished");
     return 0;
 }
