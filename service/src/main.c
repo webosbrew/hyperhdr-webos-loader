@@ -416,6 +416,9 @@ int main()
     DBG("Cleaning up service...");
     daemon_terminate(&service);
 
+    DBG("Unregistering service...");
+    LSUnregister(handle, &lserror);
+
     // Decreases the reference count on a GMainLoop object by one
     g_main_loop_unref(gmainLoop);
 
