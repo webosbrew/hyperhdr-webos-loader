@@ -67,11 +67,7 @@ int daemon_terminate(service_t *service)
             ERR("kill failed, res=%d", res);
             return 1;
         }
-    } else {
-        ERR("PID not set: %d", service->daemon_pid);
-        return 2;
     }
-
 
     if (service->execution_thread != (pthread_t) NULL) {
         res = pthread_join(service->execution_thread, NULL);
@@ -80,10 +76,6 @@ int daemon_terminate(service_t *service)
             return 3;
         }
         service->execution_thread = (pthread_t) NULL;
-    }
-    else {
-        ERR("Execution thread is not up");
-        return 4;
     }
 
     return res;
