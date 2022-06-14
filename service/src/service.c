@@ -150,6 +150,45 @@ LSMethod methods[] = {
     { 0, 0, 0 }
 };
 
+static bool power_callback(LSHandle* sh __attribute__((unused)), LSMessage* msg, void* data)
+{
+    JSchemaInfo schema;
+    jvalue_ref parsed;
+    service_t* service = (service_t*)data;
+
+    INFO("Power status callback message: %s", LSMessageGetPayload(msg));
+
+    jschema_info_init(&schema, jschema_all(), NULL, NULL);
+    parsed = jdom_parse(j_cstr_to_buffer(LSMessageGetPayload(msg)), DOMOPT_NOOPT, &schema);
+
+    // Parsing failed
+    if (jis_null(parsed)) {
+        j_release(&parsed);
+        return true;
+    }
+
+    jvalue_ref state_ref = jobject_get(parsed, j_cstr_to_buffer("state"));
+    if (!jis_valid(state_ref)) {
+        DBG("power_callback: luna-reply does not contain 'state'");
+        j_release(&parsed);
+        return true;
+    }
+
+    raw_buffer state_buf = jstring_get(state_ref);
+    const char* state_str = state_buf.m_str;
+    bool target_state = strcmp(state_str, "Active") == 0;
+
+    if (is_running(service->daemon_pid) && !target_state) {
+        INFO("Shutting down service after power pause...");
+        daemon_stop(service);
+    }
+
+    jstring_free_buffer(state_buf);
+    j_release(&parsed);
+
+    return true;
+}
+
 bool service_destroy(LSHandle *handle, service_t *service, LSError *lserror)
 {
     DBG("Cleaning up service...");
@@ -191,6 +230,10 @@ bool service_init(LSHandle *handle, GMainLoop* loop, service_t *service, LSError
     if ((ret = LSGmainAttach(handle, loop, lserror)) && !ret ) {
         ERR("Unable to attach main loop: %s", lserror->message);
         return false;
+    }
+
+    if (!LSCall(handle, "luna://com.webos.service.tvpower/power/getPowerState", "{\"subscribe\":true}", power_callback, (void*)service, NULL, lserror)) {
+        WARN("Power state monitoring call failed: %s", lserror->message);
     }
 
     return true;
