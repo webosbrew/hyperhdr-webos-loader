@@ -4,6 +4,12 @@
 
 GMainLoop *gmainLoop;
 
+void signal_handler(int signum)
+{
+    INFO("SIGNAL=%d detected, stopping...", signum);
+    g_main_loop_quit(gmainLoop);
+}
+
 int main()
 {
     service_t service = {0};
@@ -19,6 +25,11 @@ int main()
 
     log_set_level(Debug);
     LSErrorInit(&lserror);
+
+    // Register exit signal handler
+    signal(SIGINT, signal_handler);
+    signal(SIGQUIT, signal_handler);
+    signal(SIGTERM, signal_handler);
 
     // create a GMainLoop
     gmainLoop = g_main_loop_new(NULL, FALSE);
