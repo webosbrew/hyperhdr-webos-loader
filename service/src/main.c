@@ -66,7 +66,7 @@ int daemon_terminate(service_t *service)
 {
     int res = 0;
 
-    if (service->daemon_pid > 0) {
+    if (is_running(service->daemon_pid)) {
         res = kill(service->daemon_pid, SIGTERM);
         if (res != 0) {
             ERR("kill failed, res=%d", res);
