@@ -12,6 +12,7 @@ int main()
 
     service.daemon_pid = 0;
     service.daemon_version = NULL;
+    service.power_paused = false;
 
     log_init(LOG_NAME);
     INFO("Starting up...");
