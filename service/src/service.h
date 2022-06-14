@@ -4,6 +4,7 @@
 #include <glib.h>
 #include <pthread.h>
 
+#define LOG_NAME "hyperhdr-loader"
 #define SERVICE_NAME "org.webosbrew.hyperhdr.loader.service"
 #define DAEMON_PATH "/media/developer/apps/usr/palm/services/org.webosbrew.hyperhdr.loader.service/hyperhdr"
 #define DAEMON_EXECUTABLE "hyperhdr"
