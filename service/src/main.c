@@ -4,16 +4,6 @@
 
 GMainLoop *gmainLoop;
 
-// This is a deprecated symbol present in meta-lg-webos-ndk but missing in
-// latest buildroot NDK. It is required for proper public service registration
-// before webOS 3.5.
-//
-// SECURITY_COMPATIBILITY flag present in CMakeList disables deprecation notices, see:
-// https://github.com/webosose/luna-service2/blob/b74b1859372597fcd6f0f7d9dc3f300acbf6ed6c/include/public/luna-service2/lunaservice.h#L49-L53
-bool LSRegisterPubPriv(const char* name, LSHandle** sh,
-    bool public_bus,
-    LSError* lserror) __attribute__((weak));
-
 int main()
 {
     service_t service = {0};
@@ -34,24 +24,8 @@ int main()
 
     bool ret = false;
 
-    if (&LSRegisterPubPriv != 0) {
-        ret = LSRegisterPubPriv(SERVICE_NAME, &handle, true, &lserror);
-    } else {
-        ret = LSRegister(SERVICE_NAME, &handle, &lserror);
-    }
-
-    if (!ret) {
-        ERR("Unable to register on Luna bus: %s", lserror.message);
-        goto exit;
-    }
-
-    if ((ret = service_init(handle, &service, &lserror)) && !ret ) {
+    if ((ret = service_init(handle, gmainLoop, &service, &lserror)) && !ret ) {
         ERR("Unable to init service: %s", lserror.message);
-        goto exit;
-    }
-
-    if ((ret = LSGmainAttach(handle, gmainLoop, &lserror)) && !ret ) {
-        ERR("Unable to attach main loop: %s", lserror.message);
         goto exit;
     }
 
@@ -62,13 +36,9 @@ int main()
 
     DBG("Main loop quit...");
 
-    DBG("Cleaning up service...");
-    daemon_terminate(&service);
-
 exit:
-    if (handle) {
-        DBG("Unregistering service...");
-        LSUnregister(handle, &lserror);
+    if ((ret = service_destroy(handle, &service, &lserror)) && !ret) {
+        WARN("Destroying service properly failed: %s", lserror.message);
     }
 
     LSErrorFree(&lserror);
