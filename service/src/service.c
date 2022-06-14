@@ -150,9 +150,33 @@ LSMethod methods[] = {
     { 0, 0, 0 }
 };
 
-bool service_init(LSHandle *handle, service_t *service, LSError *lserror)
+bool service_destroy(LSHandle *handle, service_t *service, LSError *lserror)
+{
+    DBG("Cleaning up service...");
+    daemon_terminate(service);
+
+    if (handle) {
+        DBG("Unregistering service...");
+        LSUnregister(handle, lserror);
+    }
+
+    return true;
+}
+
+bool service_init(LSHandle *handle, GMainLoop* loop, service_t *service, LSError *lserror)
 {
     bool ret = false;
+
+    if (&LSRegisterPubPriv != 0) {
+        ret = LSRegisterPubPriv(SERVICE_NAME, &handle, true, lserror);
+    } else {
+        ret = LSRegister(SERVICE_NAME, &handle, lserror);
+    }
+
+    if (!ret) {
+        ERR("Unable to register on Luna bus: %s", lserror->message);
+        return false;
+    }
 
     if ((ret = LSRegisterCategory(handle, "/", methods, NULL, NULL, lserror)) && !ret ) {
         ERR("Unable to register category on Luna bus: %s", lserror->message);
@@ -161,6 +185,11 @@ bool service_init(LSHandle *handle, service_t *service, LSError *lserror)
 
     if ((ret = LSCategorySetData(handle, "/", service, lserror)) && !ret ) {
         ERR("Unable to set category data on Luna bus: %s", lserror->message);
+        return false;
+    }
+
+    if ((ret = LSGmainAttach(handle, loop, lserror)) && !ret ) {
+        ERR("Unable to attach main loop: %s", lserror->message);
         return false;
     }
 
