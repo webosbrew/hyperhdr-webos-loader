@@ -52,6 +52,8 @@ set(BIN_NAME loader_service)
 
 set(SRC_LIST
     ${CMAKE_SOURCE_DIR}/src/main.c
+    ${CMAKE_SOURCE_DIR}/src/service.c
+    ${CMAKE_SOURCE_DIR}/src/daemon.c
     ${CMAKE_SOURCE_DIR}/src/log.c
     ${CMAKE_SOURCE_DIR}/src/utils.c
 )
