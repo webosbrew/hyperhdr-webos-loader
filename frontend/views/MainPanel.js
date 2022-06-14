@@ -16,7 +16,7 @@ var lunaServiceUri = "luna://" + serviceName;
 var servicePath = "/media/developer/apps/usr/palm/services/" + serviceName;
 var autostartFilepath = servicePath + "/autostart.sh";
 var linkPath = "/var/lib/webosbrew/init.d/90-start_hyperhdr";
-var elevationCommand = "/media/developer/apps/usr/palm/services/org.webosbrew.hbchannel.service/elevate-service " + serviceName + " && killall -9 loader_service";
+var elevationCommand = "/media/developer/apps/usr/palm/services/org.webosbrew.hbchannel.service/elevate-service " + serviceName + " && kill -TERM $(pidof loader_service)";
 
 var not = function (x) { return !x };
 var yes_no_bool = function (x) {
