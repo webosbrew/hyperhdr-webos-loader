@@ -8,9 +8,9 @@ uint64_t start = 0;
 PmLogContext context;
 LogLevel current_log_level = Info;
 
-void log_init()
+void log_init(const char *identifier)
 {
-    PmLogGetContext("hyperion-webos", &context);
+    PmLogGetContext(identifier, &context);
 }
 
 void log_set_level(LogLevel level)

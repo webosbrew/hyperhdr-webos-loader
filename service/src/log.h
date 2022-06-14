@@ -14,7 +14,7 @@ typedef enum {
     Debug = 7,
 } LogLevel;
 
-void log_init();
+void log_init(const char *identifier);
 void log_set_level(LogLevel level);
 void log_printf(LogLevel level, const char* module, const char* fmt, ...);
 

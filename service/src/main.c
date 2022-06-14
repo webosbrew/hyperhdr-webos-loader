@@ -378,7 +378,7 @@ int main()
     service.daemon_pid = 0;
     service.daemon_version = NULL;
 
-    log_init();
+    log_init(LOG_NAME);
     INFO("Starting up...");
 
     log_set_level(Debug);
