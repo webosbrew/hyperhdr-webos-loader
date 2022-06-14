@@ -29,6 +29,11 @@ bool is_elevated()
     return (geteuid() == 0);
 }
 
+bool is_running(pid_t pid)
+{
+    return (pid > 0);
+}
+
 char *daemon_cmdline(char *args)
 {
     char *tmp = (char *)calloc(1, FILENAME_MAX);
@@ -136,11 +141,6 @@ void *execution_task(void *data)
 char *daemon_version_cmdline()
 {
     return daemon_cmdline("--version");
-}
-
-bool is_running(pid_t pid)
-{
-    return (pid > 0);
 }
 
 int daemon_start(service_t* service)
@@ -387,24 +387,33 @@ int main()
     // create a GMainLoop
     gmainLoop = g_main_loop_new(NULL, FALSE);
 
-    bool registered = false;
+    bool ret = false;
 
     if (&LSRegisterPubPriv != 0) {
-        registered = LSRegisterPubPriv(SERVICE_NAME, &handle, true, &lserror);
+        ret = LSRegisterPubPriv(SERVICE_NAME, &handle, true, &lserror);
     } else {
-        registered = LSRegister(SERVICE_NAME, &handle, &lserror);
+        ret = LSRegister(SERVICE_NAME, &handle, &lserror);
     }
 
-    if (!registered) {
+    if (!ret) {
         ERR("Unable to register on Luna bus: %s", lserror.message);
-        LSErrorFree(&lserror);
-        return -1;
+        goto exit;
     }
 
-    LSRegisterCategory(handle, "/", methods, NULL, NULL, &lserror);
-    LSCategorySetData(handle, "/", &service, &lserror);
+    if ((ret = LSRegisterCategory(handle, "/", methods, NULL, NULL, &lserror)) && !ret ) {
+        ERR("Unable to register category on Luna bus: %s", lserror.message);
+        goto exit;
+    }
 
-    LSGmainAttach(handle, gmainLoop, &lserror);
+    if ((ret = LSCategorySetData(handle, "/", &service, &lserror)) && !ret ) {
+        ERR("Unable to set category data on Luna bus: %s", lserror.message);
+        goto exit;
+    }
+
+    if ((ret = LSGmainAttach(handle, gmainLoop, &lserror)) && !ret ) {
+        ERR("Unable to attach main loop: %s", lserror.message);
+        goto exit;
+    }
 
     DBG("Going into main loop..");
 
@@ -416,8 +425,13 @@ int main()
     DBG("Cleaning up service...");
     daemon_terminate(&service);
 
-    DBG("Unregistering service...");
-    LSUnregister(handle, &lserror);
+exit:
+    if (handle) {
+        DBG("Unregistering service...");
+        LSUnregister(handle, &lserror);
+    }
+
+    LSErrorFree(&lserror);
 
     // Decreases the reference count on a GMainLoop object by one
     g_main_loop_unref(gmainLoop);
