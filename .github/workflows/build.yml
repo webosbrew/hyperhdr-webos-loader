@@ -24,6 +24,7 @@ jobs:
         working-directory: ./hyperhdr-repo
 
     steps:
+    
       - uses: actions/checkout@v3
         with:
           repository: awawa-dev/HyperHDR
@@ -31,6 +32,14 @@ jobs:
           path: hyperhdr-repo
           submodules: recursive
           fetch-depth: 0
+      
+      - name: Extract version from package.json
+        uses: sergeysova/jq-action@v2
+        id: version
+        with:
+          cmd: 
+            echo "$( jq --arg ver $(cat ./version) '.version = $ver' appinfo.json )"
+            cat ./appinfo.json
 
       - name: Restore/Cache build directories
         uses: actions/cache@v3
@@ -113,8 +122,12 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: hyperhdr-build
-          path: ${{ github.workspace }}/hyperhdr-repo/release/*
+          path: |
+            ${{ github.workspace }}/hyperhdr-repo/release/*
+            ./version
           if-no-files-found: error
+
+          
 
   build_ipk:
     runs-on: ubuntu-latest
@@ -129,6 +142,13 @@ jobs:
         with:
           name: hyperhdr-build
           path: hyperhdr-build
+      
+      - name: Extract version from package.json
+        uses: sergeysova/jq-action@v2
+        id: version
+        with:
+          cmd: 
+            echo "$( jq --arg ver $(cat ./version) '.version = $ver' appinfo.json )"
 
       - name: Display structure of downloaded files
         run: ls -R
