@@ -19,6 +19,8 @@ env:
 jobs:
   build_hyperhdr:
     runs-on: ubuntu-latest
+    outputs:
+      commits-count: ${{ steps.version.outputs.commits-count }}
     defaults:
       run:
         working-directory: ./hyperhdr-repo
@@ -40,6 +42,9 @@ jobs:
           cmd: 
             echo "$( jq --arg ver $(cat ./version) '.version = $ver' appinfo.json )"
             cat ./appinfo.json
+
+      - id: version
+        run: echo "commits-count=$(git log --oneline | wc -l)" >> $GITHUB_OUTPUT
 
       - name: Restore/Cache build directories
         uses: actions/cache@v3
@@ -134,9 +139,16 @@ jobs:
     needs: build_hyperhdr
 
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
+          fetch-depth: 0
+
+      - id: version
+        run: echo "commits-count=$(git log --oneline | wc -l)" >> $GITHUB_OUTPUT
+
+      - id: apk_version
+        run: echo "value=0.${{steps.version.outputs.commits-count}}.${{needs.build_hyperhdr.outputs.commits-count}}" >> $GITHUB_OUTPUT
 
       - uses: actions/download-artifact@v3
         with:
@@ -152,6 +164,20 @@ jobs:
 
       - name: Display structure of downloaded files
         run: ls -R
+
+      - name: Update appinfo.json version from hyperhdr-build
+        uses: jossef/action-set-json-field@v2
+        with:
+          file: appinfo.json
+          field: version
+          value: ${{steps.apk_version.outputs.value}}
+
+      - name: Update package.json version from hyperhdr-build
+        uses: jossef/action-set-json-field@v2
+        with:
+          file: package.json
+          field: version
+          value: ${{steps.apk_version.outputs.value}}
 
       - name: Setup Node.js
         uses: actions/setup-node@v1
