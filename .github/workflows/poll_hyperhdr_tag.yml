@@ -59,8 +59,8 @@ jobs:
         uses: peter-evans/create-pull-request@v4
         with:
           add-paths: .github/workflows/build.yml
-          title: [Daemon] Bump to ${{ needs.remote_tag.outputs.tag }}
-          commit-message: [Daemon] Bump to ${{ needs.remote_tag.outputs.tag }}
+          title: "[Daemon] Bump HyperHDR to ${{ needs.remote_tag.outputs.tag }}"
+          commit-message: "[Daemon] Bump HyperHDR to ${{ needs.remote_tag.outputs.tag }}"
           branch: ${{ env.pr_branch }}
           delete-branch: true
       
