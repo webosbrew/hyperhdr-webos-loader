@@ -1,0 +1,68 @@
+name: Poll HyperHDR (Pre-)releases
+on:
+  schedule:
+    # Runs at 00:00 UTC everyday
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+jobs:
+  local_tag:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.read-tag.outputs.value }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Read current tag from CI workflow
+        id: read-tag
+        run: echo value=$(yq -r .jobs.build_hyperhdr.steps[0].with.ref ./.github/workflows/build.yml) >> $GITHUB_OUTPUT
+      - name: Print out gathered tag
+        run: echo "Current tag=${{ steps.read-tag.outputs.value }}"
+
+  remote_tag:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.read-tag.outputs.value }}
+    steps:
+      - name: Checkout HyperHDR repo
+        uses: actions/checkout@v3
+        with:
+          repository: awawa-dev/HyperHDR
+          submodules: recursive
+          fetch-depth: 0
+      - name: Get latest tag of HyperHDR
+        id: read-tag
+        run: echo value=$(git describe --tags --abbrev=0) >> $GITHUB_OUTPUT
+      - name: Print out gathered tag
+        run: echo "Current tag=${{ steps.read-tag.outputs.value }}"
+  
+  create_pull_request:
+    runs-on: ubuntu-latest
+    needs: [local_tag, remote_tag]
+    if: ${{ needs.local_tag.outputs.tag != needs.remote_tag.outputs.tag }}
+    steps:
+      - name: Assemble PR branch name
+        run: echo "pr_branch=update_daemon/${{ needs.remote_tag.outputs.tag }}" >> $GITHUB_ENV
+      - name: Check if PR already exists by attempting to checkout branch
+        continue-on-error: true
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ env.pr_branch }}
+      - name: Check if PR branch cloned
+        run: |
+          sh -c 'if [[ -f package.json ]]; then echo "PR already exists"; exit 1; fi'
+      - name: Clone master branch
+        uses: actions/checkout@v3
+        with:
+          ref: master
+          fetch-depth: 0
+      - name: Inject latest tag into CI workflow file
+        run: sed -i 's/${{ needs.local_tag.outputs.tag }}/${{ needs.remote_tag.outputs.tag }}/' ./.github/workflows/build.yml
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v4
+        with:
+          add-paths: .github/workflows/build.yml
+          title: "[Daemon] Bump HyperHDR to ${{ needs.remote_tag.outputs.tag }}"
+          commit-message: "[Daemon] Bump HyperHDR to ${{ needs.remote_tag.outputs.tag }}"
+          branch: ${{ env.pr_branch }}
+          delete-branch: true
+      
