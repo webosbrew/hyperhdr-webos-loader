@@ -16,7 +16,7 @@ jobs:
         id: read-tag
         run: echo value=$(yq -r .jobs.build_hyperhdr.steps[0].with.ref ./.github/workflows/build.yml) >> $GITHUB_OUTPUT
       - name: Print out gathered tag
-        run: echo "Current tag=${{ env.hyperhdr_ref }}"
+        run: echo "Current tag=${{ steps.read-tag.outputs.value }}"
 
   remote_tag:
     runs-on: ubuntu-latest
@@ -32,6 +32,8 @@ jobs:
       - name: Get latest tag of HyperHDR
         id: read-tag
         run: echo value=$(git describe --tags --abbrev=0) >> $GITHUB_OUTPUT
+      - name: Print out gathered tag
+        run: echo "Current tag=${{ steps.read-tag.outputs.value }}"
   
   create_pull_request:
     runs-on: ubuntu-latest
