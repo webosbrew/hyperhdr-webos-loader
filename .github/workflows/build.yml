@@ -45,21 +45,22 @@ jobs:
       - name: Create build directories
         run: |
           mkdir -p ./${{ env.BUILD_DIR }}
-
-      - name: Download and unpack toolchain
+      - name: Cache toolchain dir
+        id: cache-toolchain
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.TOOLCHAIN_DIR }}
+          key: ${{ runner.os }}-${{ env.TOOLCHAIN_URL }}      
+      
+      - name: Download and unpack toolchain      
+        if: steps.cache-toolchain.outputs.cache-hit != 'true'
         working-directory: /opt
         run: |
           wget -q -O toolchain.tar.gz ${TOOLCHAIN_URL}
           tar xf toolchain.tar.gz
-
-      - name: Relocate toolchain
-        run: |
           pushd ${TOOLCHAIN_DIR}
           ./relocate-sdk.sh
           popd
-
-      - name: Fix toolchain (remove perl)
-        run: |
           find ${TOOLCHAIN_DIR}/bin -type f -iname "perl*" -delete
 
       - name: Install native dependencies
@@ -137,18 +138,13 @@ jobs:
         uses: actions/setup-node@v1
         with:
           node-version: 14.x
-
-      - name: Download and unpack toolchain
-        working-directory: /opt
-        run: |
-          wget -q -O toolchain.tar.gz ${TOOLCHAIN_URL}
-          tar xf toolchain.tar.gz
-
-      - name: Relocate toolchain
-        run: |
-          pushd ${TOOLCHAIN_DIR}
-          ./relocate-sdk.sh
-          popd
+      
+      - name: Restore toolchain cache
+        id: cache-toolchain
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.TOOLCHAIN_DIR }}
+          key: ${{ runner.os }}-${{ env.TOOLCHAIN_URL }}      
 
       - name: Install native dependencies
         env:
