@@ -27,7 +27,7 @@ jobs:
       - uses: actions/checkout@v3
         with:
           repository: awawa-dev/HyperHDR
-          ref: v19.0.0.0
+          ref: v20.0.0.0beta1
           path: hyperhdr-repo
           submodules: recursive
           fetch-depth: 0
@@ -85,7 +85,7 @@ jobs:
             -DENABLE_V4L2=OFF \
             -DENABLE_X11=OFF \
             -DENABLE_PIPEWIRE=OFF \
-            -DENABLE_SOUNDCAPLINUX=OFF \
+            -DENABLE_SOUNDCAPLINUX=ON \
             -DENABLE_CEC=OFF \
             -DENABLE_PROTOBUF=OFF \
             -DENABLE_FRAMEBUFFER=OFF
@@ -100,7 +100,7 @@ jobs:
 
       - name: Copy dependencies to release/
         env:
-          dependency_libs: libpng16.so.16 libjpeg.so.8 libcrypto.so.1.1 libz.so.1 libssl.so.1.1 libQt5Sql.so.5.15.2 libpcre2-16.so.0 libQt5Gui.so.5 libQt5Network.so.5 libQt5Widgets.so.5 libk5crypto.so.3 libatomic.so.1 libQt5Core.so.5 libkrb5support.so.0 libcom_err.so.3 libstdc++.so.6 libkrb5.so.3 libQt5Sql.so.5 libgssapi_krb5.so.2 libQt5SerialPort.so.5 libQt5Sql.so.5.15 libusb-1.0.so.0
+          dependency_libs: libpng16.so.16 libjpeg.so.8 libcrypto.so.1.1 libz.so.1 libssl.so.1.1 libQt5Sql.so.5.15.2 libpcre2-16.so.0 libQt5Gui.so.5 libQt5Network.so.5 libQt5Widgets.so.5 libk5crypto.so.3 libatomic.so.1 libQt5Core.so.5 libkrb5support.so.0 libcom_err.so.3 libstdc++.so.6 libkrb5.so.3 libQt5Sql.so.5 libgssapi_krb5.so.2 libQt5SerialPort.so.5 libQt5Sql.so.5.15 libusb-1.0.so.0 libturbojpeg.so.0
         run: |
           for i in ${{ env.dependency_libs }}; do find ${TOOLCHAIN_DIR}/arm-webos-linux-gnueabi/sysroot/ -name $i -exec cp {} ./release/ \;; done
           mkdir -p ./release/sqldrivers
@@ -189,8 +189,6 @@ jobs:
 
           chmod +x ./dist/service/hyperhdr/hyperhdr
           chmod +x ./dist/service/hyperhdr/hyperhdr-remote
-          chmod +x ./dist/service/hyperhdr/flatc
-          chmod +x ./dist/service/hyperhdr/flathash
 
       - name: Copy HDR LUT
         run: unxz -dc ./resources/flat_lut_lin_tables.3d.xz > ./dist/service/hyperhdr/flat_lut_lin_tables.3d
