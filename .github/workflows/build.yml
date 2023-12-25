@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
 
 env:
-  TOOLCHAIN_URL: https://github.com/openlgtv/buildroot-nc4/releases/download/webos-c592d84/arm-webos-linux-gnueabi_sdk-buildroot.tar.gz
+  TOOLCHAIN_URL: https://github.com/openlgtv/buildroot-nc4/releases/download/webos-d7ed7ee/arm-webos-linux-gnueabi_sdk-buildroot.tar.gz
   TOOLCHAIN_DIR: /opt/arm-webos-linux-gnueabi_sdk-buildroot
   TOOLCHAIN_ENV_FILE: /opt/arm-webos-linux-gnueabi_sdk-buildroot/environment-setup
   TOOLCHAIN_FILE: /opt/arm-webos-linux-gnueabi_sdk-buildroot/share/buildroot/toolchainfile.cmake
@@ -204,24 +204,3 @@ jobs:
           name: hyperhdr-ipk
           path: |
             ${{github.workspace}}/*.ipk
-
-      - uses: marvinpinto/action-automatic-releases@latest
-        if: "github.ref == 'refs/heads/master'"
-        with:
-          repo_token: "${{ secrets.GITHUB_TOKEN }}"
-          automatic_release_tag: latest
-          prerelease: true
-          title: "Development Build"
-          files: |
-            ${{github.workspace}}/*.ipk
-            ${{github.workspace}}/org.webosbrew.hyperhdr.loader.manifest.json
-
-      - uses: marvinpinto/action-automatic-releases@latest
-        if: "startsWith(github.ref, 'refs/tags/v')"
-        with:
-          repo_token: "${{ secrets.GITHUB_TOKEN }}"
-          prerelease: false
-          title: ${{ github.ref_name }}
-          files: |
-            ${{github.workspace}}/*.ipk
-            ${{github.workspace}}/org.webosbrew.hyperhdr.loader.manifest.json
