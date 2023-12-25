@@ -1,4 +1,4 @@
-name: WebOS build
+name: WebOS build test
 on:
   push:
   pull_request:
