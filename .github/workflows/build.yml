@@ -202,3 +202,24 @@ jobs:
           name: hyperhdr-ipk
           path: |
             ${{github.workspace}}/*.ipk
+
+      - uses: marvinpinto/action-automatic-releases@latest
+        if: "github.ref == 'refs/heads/master'"
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          automatic_release_tag: latest
+          prerelease: true
+          title: "Development Build"
+          files: |
+            ${{github.workspace}}/*.ipk
+            ${{github.workspace}}/org.webosbrew.hyperhdr.loader.manifest.json
+
+      - uses: marvinpinto/action-automatic-releases@latest
+        if: "startsWith(github.ref, 'refs/tags/v')"
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          prerelease: false
+          title: ${{ github.ref_name }}
+          files: |
+            ${{github.workspace}}/*.ipk
+            ${{github.workspace}}/org.webosbrew.hyperhdr.loader.manifest.json
