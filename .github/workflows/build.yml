@@ -188,7 +188,6 @@ jobs:
           chmod +x ./dist/service/start_hyperhdr
 
           chmod +x ./dist/service/hyperhdr/hyperhdr
-          chmod +x ./dist/service/hyperhdr/hyperhdr-remote
 
       - name: Copy HDR LUT
         run: unxz -dc ./resources/flat_lut_lin_tables.3d.xz > ./dist/service/hyperhdr/flat_lut_lin_tables.3d
