@@ -27,7 +27,7 @@ jobs:
       - uses: actions/checkout@v3
         with:
           repository: awawa-dev/HyperHDR
-          ref: v20.0.0.0
+          ref: v21.0.0.0beta1
           path: hyperhdr-repo
           submodules: recursive
           fetch-depth: 0
@@ -188,7 +188,6 @@ jobs:
           chmod +x ./dist/service/start_hyperhdr
 
           chmod +x ./dist/service/hyperhdr/hyperhdr
-          chmod +x ./dist/service/hyperhdr/hyperhdr-remote
 
       - name: Copy HDR LUT
         run: unxz -dc ./resources/flat_lut_lin_tables.3d.xz > ./dist/service/hyperhdr/flat_lut_lin_tables.3d

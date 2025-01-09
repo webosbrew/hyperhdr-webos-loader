@@ -33,7 +33,7 @@ do
   chmod +x ${FILE}
 done
 
-for file in hyperhdr hyperhdr-remote flatc flathash
+for file in hyperhdr flatc flathash
 do
   FILE="${EXEC_DIR}/dist/service/hyperhdr/${file}"
   echo "=> ${FILE}"
