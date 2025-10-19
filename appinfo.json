@@ -8,7 +8,7 @@
   "splashBackground": "assets/splash_1080p.png",
   "bgImage": "assets/splash_1080p.png",
   "main": "index.html",
-  "iconColor": "black",
+  "iconColor": "#000000",
   "type": "web",
   "supportGIP": true,
   "appDescription": "HyperHDR for WebOS"
