@@ -1,11 +1,11 @@
-name:  WebOS-Build (Qt6)
+name: WebOS build
 on:
   push:
   pull_request:
   workflow_dispatch:
 
 env:
-  TOOLCHAIN_URL: https://github.com/openlgtv/buildroot-nc4/releases/download/webos-d7ed7ee/arm-webos-linux-gnueabi_sdk-buildroot.tar.gz
+  TOOLCHAIN_REVISION: a38c582ea397fec612811f8e933ae982d41fc5a3
   TOOLCHAIN_DIR: /opt/arm-webos-linux-gnueabi_sdk-buildroot
   TOOLCHAIN_ENV_FILE: /opt/arm-webos-linux-gnueabi_sdk-buildroot/environment-setup
   TOOLCHAIN_FILE: /opt/arm-webos-linux-gnueabi_sdk-buildroot/share/buildroot/toolchainfile.cmake
@@ -15,40 +15,79 @@ env:
   CCACHE_COMPRESS: true
   CCACHE_COMPRESSLEVEL: 6
   CCACHE_MAXSIZE: 600M
-  QT_VERSION: "6.8.3"
 
 jobs:
+
+  build_sdk:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: ${{ github.workspace }}/buildroot-nc4
+
+    steps:
+      - name: Restore toolchain cache
+        id: cache-toolchain-restore
+        uses: actions/cache@v6
+        with:
+          path: ${{ github.workspace }}/buildroot-nc4/output/images/*_sdk-buildroot*.tar.gz
+          key: toolchain-${{ runner.os }}-${{ env.TOOLCHAIN_REVISION }}
+
+      - uses: actions/checkout@v7
+        if: steps.cache-toolchain-restore.outputs.cache-hit != 'true'
+        with:
+          repository: openlgtv/buildroot-nc4
+          ref: ${{ env.TOOLCHAIN_REVISION }}
+          path: ${{ github.workspace }}/buildroot-nc4
+          fetch-depth: 0
+
+      - name: Prepare Environment
+        if: steps.cache-toolchain-restore.outputs.cache-hit != 'true'
+        working-directory: ${{ github.workspace }}/buildroot-nc4
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y cpio rsync bc
+          make webos_tv_defconfig
+          echo "BR2_PACKAGE_QT5=n" >> .config
+          echo "BR2_PACKAGE_QT6=y" >> .config
+          echo "BR2_PACKAGE_QT6BASE_NETWORK=y" >> .config
+          echo "BR2_PACKAGE_QT6SERIALPORT=y" >> .config
+          echo "BR2_PACKAGE_ICU=n" >> .config
+          wget https://gist.githubusercontent.com/sundermann/eec535ef79adb87367a6030f713d5e27/raw/20b9add1b41e0c0c55dd11aaeff41160eebe9693/em_aarch64.patch -O package/qt6/qt6base/em_aarch64.patch
+          wget https://gist.githubusercontent.com/sundermann/eec535ef79adb87367a6030f713d5e27/raw/20b9add1b41e0c0c55dd11aaeff41160eebe9693/statvfs.patch -O package/qt6/qt6base/statvfs.patch
+          make olddefconfig
+
+      - name: Build SDK
+        if: steps.cache-toolchain-restore.outputs.cache-hit != 'true'
+        working-directory: ${{ github.workspace }}/buildroot-nc4
+        run: |
+          make sdk
+
+      - name: Cache toolchain
+        if: steps.cache-toolchain-restore.outputs.cache-hit != 'true'
+        id: cache-toolchain
+        uses: actions/cache@v6
+        with:
+          path: ${{ github.workspace }}/buildroot-nc4/output/images/*_sdk-buildroot*.tar.gz
+          key: toolchain-${{ runner.os }}-${{ env.TOOLCHAIN_REVISION }}
+
   build_hyperhdr:
+    needs: build_sdk
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: ./hyperhdr-repo
 
     steps:
-      - name: Checkout HyperHDR
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           repository: awawa-dev/HyperHDR
           ref: v22.0.0.0beta2
-
           path: hyperhdr-repo
           submodules: recursive
           fetch-depth: 0
 
-      - name: Install native dependencies
-        env:
-          apt_deps: ccache git cmake build-essential flatbuffers-compiler ninja-build
-        run: |
-          sudo apt update
-          sudo apt install -y ${{ env.apt_deps }}
-
-      - name: Set up host QT Toolchain path
-        run: |
-          echo "QT_TOOLCHAIN_DIR=$TOOLCHAIN_DIR/qt6-host" >> $GITHUB_ENV
-          echo "SYSROOT=$TOOLCHAIN_DIR/arm-webos-linux-gnueabi/sysroot" >> $GITHUB_ENV
-
       - name: Restore/Cache build directories
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             ${{ github.workspace }}/${{ env.CCACHE_CACHE_DIR }}
@@ -61,116 +100,29 @@ jobs:
         run: |
           mkdir -p ./${{ env.BUILD_DIR }}
 
-      - name: Cache toolchain dir
-        id: cache-toolchain
-        uses: actions/cache@v4
+      - name: Restore toolchain cache
+        id: cache-toolchain-restore
+        uses: actions/cache@v6
         with:
-          path: ${{ env.TOOLCHAIN_DIR }}
-          key: ${{ runner.os }}-${{ env.TOOLCHAIN_URL }}
+          path: ${{ github.workspace }}/buildroot-nc4/output/images/*_sdk-buildroot*.tar.gz
+          key: toolchain-${{ runner.os }}-${{ env.TOOLCHAIN_REVISION }}
 
-      - name: Download and unpack toolchain
-        if: steps.cache-toolchain.outputs.cache-hit != 'true'
+      - name: Unpack toolchain
         working-directory: /opt
         run: |
-          wget -q -O toolchain.tar.gz ${TOOLCHAIN_URL}
+          cp ${{ github.workspace }}/buildroot-nc4/output/images/*_sdk-buildroot*.tar.gz toolchain.tar.gz
           tar xf toolchain.tar.gz
           pushd ${TOOLCHAIN_DIR}
           ./relocate-sdk.sh
           popd
           find ${TOOLCHAIN_DIR}/bin -type f -iname "perl*" -delete
 
-      - name: "Build QT: Core, Network and SerialPort"
-        # credits to https://github.com/awawa-dev/HyperDockerBuilder/blob/6c5b3fcfee013265be3f3732db641daa2fc7988a/build.sh
-        if: steps.cache-toolchain.outputs.cache-hit != 'true'
+      - name: Install native dependencies
+        env:
+          apt_deps: ccache git cmake build-essential flatbuffers-compiler
         run: |
-          mkdir -p /opt/qt_build
-          git clone --branch v${QT_VERSION} https://github.com/qt/qtbase.git /opt/qt_build/qt_source
-
-          echo "========================== BUILDING QTBASE (HOST) ============================"
-          mkdir -p /opt/qt_build/host
-          cd /opt/qt_build/host
-
-          ../qt_source/configure \
-              -prefix $QT_TOOLCHAIN_DIR \
-              -nomake tests -nomake examples \
-              -no-dbus -no-gui -no-widgets -no-sql-sqlite -no-icu -no-feature-network \
-              -no-opengl
-
-          echo "----------------- BUILD (HOST) ------------------"
-          cmake --build . --parallel
-          cmake --install .
-
-          echo "------------------ HOST FILES ------------------"
-          ls $QT_TOOLCHAIN_DIR
-
-          echo "========================== BUILDING QTBASE (CROSS) ============================"
-          mkdir -p /opt/qt_build/base
-          cd /opt/qt_build/base
-
-          rm -f ${TOOLCHAIN_DIR}/arm-webos-linux-gnueabi/sysroot/usr/local/qt6/lib/libQt6Core.so* \
-              ${TOOLCHAIN_DIR}/arm-webos-linux-gnueabi/sysroot/usr/local/qt6/lib/libQt6Network.so*
-
-          rm -rf /opt/qt_build/qt_source/mkspecs/devices/linux-webos-g++
-          mkdir -p /opt/qt_build/qt_source/mkspecs/devices/linux-webos-g++
-
-          cp -r $TOOLCHAIN_DIR/mkspecs/devices/linux-buildroot-g++ /opt/qt_build/qt_source/mkspecs/devices/linux-webos-g++
-
-          mv "/opt/qt_build/qt_source/src/corelib/io/forkfd_qt.c" "/opt/qt_build/qt_source/src/corelib/io/forkfd_qt.cpp"
-          sed -i 's/forkfd_qt\.c/forkfd_qt.cpp/' "/opt/qt_build/qt_source/src/corelib/CMakeLists.txt"
-          sed -i 's/readOnly = (statfs_buf.f_flags & ST_RDONLY) != 0;/readOnly = false;/' /opt/qt_build/qt_source/src/corelib/io/qstorageinfo_linux.cpp
-
-          printf '\n# --- WebOS lean build adjustments for Qt6 ---\n' >> "${TOOLCHAIN_FILE}"
-          printf 'message(STATUS "Disabling RPATH for lean WebOS build")\n' >> "${TOOLCHAIN_FILE}"
-          printf 'set(CMAKE_SKIP_RPATH TRUE)\n' >> "${TOOLCHAIN_FILE}"
-          printf 'set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)\n' >> "${TOOLCHAIN_FILE}"
-          sed -i '1i#define EM_AARCH64 183' /opt/qt_build/qt_source/src/corelib/plugin/qelfparser_p.cpp
-
-          ../qt_source/configure \
-              -prefix $SYSROOT/usr/local/qt6 \
-              -release \
-              -platform linux-g++ \
-              -device linux-webos-g++ \
-              -device-option CROSS_COMPILE=$TOOLCHAIN_DIR/bin/arm-webos-linux-gnueabi- \
-              -qt-host-path ${QT_TOOLCHAIN_DIR} \
-              -no-dbus -no-gui -no-widgets -no-sql-sqlite -no-icu \
-              -nomake tests -nomake examples \
-              -- -DCMAKE_TOOLCHAIN_FILE=${TOOLCHAIN_FILE} \
-              -DQt6CoreTools_DIR=$QT_TOOLCHAIN_DIR/lib/cmake/Qt6CoreTools \
-              -DQt6WidgetsTools_DIR=$QT_TOOLCHAIN_DIR/lib/cmake/Qt6WidgetsTools \
-              -DQt6GuiTools_DIR=$QT_TOOLCHAIN_DIR/lib/cmake/Qt6GuiTools
-
-          echo "---------------- SUMMARY (ARM) -----------------"
-          cat CMakeCache.txt | grep -E "CMAKE_CXX_COMPILER|CMAKE_TOOLCHAIN_FILE|CMAKE_INSTALL_PREFIX|CMAKE_SYSTEM_NAME" || true
-
-          echo "----------------- BUILD (ARM) ------------------"
-          cmake --build . --parallel
-          cmake --install .
-
-          echo "------------------ ARCH TEST -------------------"
-          file $SYSROOT/usr/local/qt6/lib/libQt6Core.so*
-          file $SYSROOT/usr/local/qt6/lib/libQt6Network.so*
-
-          echo "========================== BUILDING QTSERIALPORT (CROSS) ============================"
-          mkdir -p /opt/qt_build
-
-          git clone --branch v${QT_VERSION} https://github.com/qt/qtserialport.git /opt/qt_build/qtserialport
-          mkdir -p /opt/qt_build/qtserialport/build
-          cd /opt/qt_build/qtserialport/build
-          cmake -DCMAKE_BUILD_TYPE=Release \
-                -DCMAKE_TOOLCHAIN_FILE="${TOOLCHAIN_FILE}" \
-                -DQT_HOST_PATH="${QT_TOOLCHAIN_DIR}" \
-                -DCMAKE_PREFIX_PATH="$SYSROOT/usr/local/qt6/lib/cmake" \
-                -DCMAKE_INSTALL_PREFIX="$SYSROOT/usr/local/qt6" ..
-
-          echo "---------------- SUMMARY (ARM) -----------------"
-          cat CMakeCache.txt | grep -E "CMAKE_CXX_COMPILER|CMAKE_TOOLCHAIN_FILE|CMAKE_INSTALL_PREFIX|CMAKE_SYSTEM_NAME" || true
-
-          echo "----------------- BUILD (ARM) ------------------"
-          cmake --build . --parallel --verbose
-          cmake --install .
-
-          echo "------------------ ARCH TEST -------------------"
-          file ${TOOLCHAIN_DIR}/arm-webos-linux-gnueabi/sysroot/usr/local/qt6/lib/libQt6SerialPort.so*
+          sudo apt update
+          sudo apt install -y ${{ env.apt_deps }}
 
       - name: Build (webos arm)
         env:
@@ -181,9 +133,6 @@ jobs:
             -DCMAKE_C_COMPILER_LAUNCHER=ccache \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
             -DCMAKE_TOOLCHAIN_FILE=${TOOLCHAIN_FILE} \
-            -DQt6_DIR=${TOOLCHAIN_DIR}/arm-webos-linux-gnueabi/sysroot/usr/local/qt6/lib/cmake/Qt6 \
-            -DQt6HostInfo_DIR=$QT_TOOLCHAIN_DIR/lib/cmake/Qt6HostInfo \
-            -DQt6CoreTools_DIR=$QT_TOOLCHAIN_DIR/lib/cmake/Qt6CoreTools \
             -DCMAKE_BUILD_TYPE=Release \
             -DPLATFORM=linux \
             -DENABLE_SPI_FTDI=ON \
@@ -191,10 +140,11 @@ jobs:
             -DENABLE_V4L2=OFF \
             -DENABLE_X11=OFF \
             -DENABLE_PIPEWIRE=OFF \
-            -DENABLE_SOUNDCAPLINUX=ON \
+            -DENABLE_SOUNDCAPLINUX=OFF \
             -DENABLE_CEC=OFF \
             -DENABLE_PROTOBUF=OFF \
-            -DENABLE_FRAMEBUFFER=OFF
+            -DENABLE_FRAMEBUFFER=OFF \
+            -DENABLE_POWER_MANAGEMENT=OFF
           make
           popd
 
@@ -206,40 +156,15 @@ jobs:
 
       - name: Copy dependencies to release/
         env:
-          dependency_libs: >
-            libpng16.so.16 libjpeg.so.8 libcrypto.so.1.1 libcrypto.so.3 libz.so.1 libssl.so.1.1 libssl.so.3
-            libpcre2-16.so.0 libQt6Network.so.6 libk5crypto.so.3 libatomic.so.1
-            libQt6Core.so.6 libkrb5support.so.0 libcom_err.so.3 libstdc++.so.6
-            libkrb5.so.3 libgssapi_krb5.so.2 libQt6SerialPort.so.6 libusb-1.0.so.0
-            libturbojpeg.so.0 libftdi1.so.2 libudev.so.1 libcom_err.so.3
+          dependency_libs: libQt6Core.so.6 libQt6Network.so.6 libQt6SerialPort.so.6 libatomic.so.1 libcrypto.so.3 libftdi1.so.2 libjpeg.so.8 libpng16.so.16 libpcre2-16.so.0 libssl.so.1.1 libssl.so.3 libstdc++.so.6 libturbojpeg.so.0 libudev.so.1 libusb-1.0.so.0 libz.so.1 libdouble-conversion.so.3 libb2.so.1
         run: |
-          echo "------------------ FIND AND COPY DEPENDED LIBS --------------------"
-          for i in $dependency_libs; do
-              found=$(find "${TOOLCHAIN_DIR}/arm-webos-linux-gnueabi/sysroot/" -name "$i" -print -quit)
-              if [ -n "$found" ]; then
-                  cp -v "$found" ./release/
-              else
-                  echo "⚠️ Warning: $i not found, could not copy!"
-              fi
-          done
-
-          echo "----------------- VERIFY LIBS NEEDED BY HYPERHDR ------------------"
-          if file ./release/hyperhdr | grep -q ELF; then
-              for lib in $(readelf -d ./release/hyperhdr 2>/dev/null | grep NEEDED | awk -F'[][]' '{print $2}'); do
-                  if [ ! -f "./release/$lib" ]; then
-                      echo "⚠️ Warning: hyperhdr needs $lib but it is missing in ./release. If it's a sysroot's core system library, you can ignore it."
-                  fi
-              done
-          fi
-
+          for i in ${{ env.dependency_libs }}; do find ${TOOLCHAIN_DIR}/arm-webos-linux-gnueabi/sysroot/ -name $i -exec cp {} ./release/ \;; done
           mkdir -p ./release/tls
-          cp $SYSROOT/usr/local/qt6/plugins/tls/libqopensslbackend.so ./release/tls/
-
-          echo "-------------------- FINAL ./release CONTENT ----------------------"
+          cp ${TOOLCHAIN_DIR}/arm-webos-linux-gnueabi/sysroot/usr/lib/qt6/plugins/tls/libqopensslbackend.so ./release/tls/
           find ./release
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: hyperhdr-build
           path: ${{ github.workspace }}/hyperhdr-repo/release/*
@@ -250,11 +175,11 @@ jobs:
     needs: build_hyperhdr
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: hyperhdr-build
           path: hyperhdr-build
@@ -263,16 +188,26 @@ jobs:
         run: ls -R
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 14.x
 
       - name: Restore toolchain cache
-        id: cache-toolchain
-        uses: actions/cache@v4
+        id: cache-toolchain-restore
+        uses: actions/cache@v6
         with:
-          path: ${{ env.TOOLCHAIN_DIR }}
-          key: ${{ runner.os }}-${{ env.TOOLCHAIN_URL }}
+          path: ${{ github.workspace }}/buildroot-nc4/output/images/*_sdk-buildroot*.tar.gz
+          key: toolchain-${{ runner.os }}-${{ env.TOOLCHAIN_REVISION }}
+
+      - name: Unpack toolchain
+        working-directory: /opt
+        run: |
+          cp ${{ github.workspace }}/buildroot-nc4/output/images/*_sdk-buildroot*.tar.gz toolchain.tar.gz
+          tar xf toolchain.tar.gz
+          pushd ${TOOLCHAIN_DIR}
+          ./relocate-sdk.sh
+          popd
+          find ${TOOLCHAIN_DIR}/bin -type f -iname "perl*" -delete
 
       - name: Install native dependencies
         env:
@@ -298,7 +233,7 @@ jobs:
           cmake .. \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_TOOLCHAIN_FILE=${TOOLCHAIN_FILE}
-          make
+          make -j$(nproc)
           popd
           cp -r ./service/build/dist/* ./dist/service/
 
@@ -326,7 +261,7 @@ jobs:
       - run: npm run gen-manifest
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: hyperhdr-ipk
           path: |
