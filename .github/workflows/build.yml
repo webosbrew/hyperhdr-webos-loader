@@ -81,7 +81,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           repository: awawa-dev/HyperHDR
-          ref: v22.0.0.0beta2
+          ref: v22.0.0.0
           path: hyperhdr-repo
           submodules: recursive
           fetch-depth: 0
